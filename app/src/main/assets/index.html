@@ -1,0 +1,2944 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>家畜診療記録</title>
+<style>
+  /* =====================================================
+     Apple Design Tokens — getdesign.md/apple
+     ===================================================== */
+  :root {
+    /* Brand & accent */
+    --primary:           #0066cc;  /* Action Blue */
+    --primary-focus:     #0071e3;
+    --primary-on-dark:   #2997ff;
+
+    /* Surface */
+    --canvas:            #ffffff;
+    --canvas-parchment:  #f5f5f7;
+    --surface-pearl:     #fafafc;
+    --surface-tile-1:    #272729;
+    --surface-black:     #000000;
+
+    /* Ink */
+    --ink:               #1d1d1f;
+    --ink-muted-80:      #333333;
+    --ink-muted-48:      #7a7a7a;
+    --on-dark:           #ffffff;
+    --body-muted:        #cccccc;
+
+    /* Hairlines */
+    --hairline:          #e0e0e0;
+    --divider-soft:      #f0f0f0;
+
+    /* Semantic */
+    --danger:            #ff3b30;  /* iOS system red */
+
+    /* Radius */
+    --r-sm:    8px;
+    --r-md:    11px;
+    --r-lg:    18px;
+    --r-pill:  9999px;
+
+    /* Spacing */
+    --s-xxs: 4px; --s-xs: 8px; --s-sm: 12px; --s-md: 17px;
+    --s-lg: 24px; --s-xl: 32px; --s-xxl: 48px; --s-section: 80px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--canvas-parchment); }
+  body {
+    font-family: "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont,
+                 "Helvetica Neue", "Hiragino Sans", "Noto Sans JP", sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 17px;
+    line-height: 1.47;
+    letter-spacing: -0.374px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  button { font-family: inherit; }
+
+  /* =====================================================
+     Global Nav (slim black bar — Apple global-nav)
+     ===================================================== */
+  header {
+    background: var(--surface-black);
+    color: var(--on-dark);
+    height: 44px;
+    padding: 0 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 {
+    font-family: "SF Pro Display", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.224px;
+  }
+  header .badge {
+    background: rgba(255,255,255,0.12);
+    color: var(--on-dark);
+    padding: 3px 10px;
+    border-radius: var(--r-pill);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: -0.12px;
+  }
+  header .right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header .lang-select {
+    background: rgba(255,255,255,0.12);
+    color: var(--on-dark);
+    border: none;
+    border-radius: var(--r-pill);
+    padding: 4px 26px 4px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: -0.12px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1L5 5L9 1' stroke='white' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  header .lang-select option { color: var(--ink); background: var(--canvas); }
+
+  /* =====================================================
+     Sub-nav (frosted parchment — Apple sub-nav-frosted)
+     ===================================================== */
+  .tabs {
+    display: flex;
+    background: rgba(245,245,247,0.85);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--hairline);
+    position: sticky;
+    top: 44px;
+    z-index: 99;
+    height: 52px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 0 8px;
+    border: none;
+    background: transparent;
+    color: var(--ink-muted-80);
+    font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.224px;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.12s ease;
+    position: relative;
+  }
+  .tab-btn:active { transform: scale(0.97); }
+  .tab-btn.active {
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .tab-btn.active::after {
+    content: '';
+    position: absolute;
+    left: 18%; right: 18%; bottom: -1px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: var(--r-pill);
+  }
+
+  /* =====================================================
+     Views
+     ===================================================== */
+  .view {
+    display: none;
+    padding: var(--s-lg) var(--s-md);
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .view.active { display: block; }
+
+  /* =====================================================
+     Card (store-utility-card)
+     ===================================================== */
+  .card {
+    background: var(--canvas);
+    border-radius: var(--r-lg);
+    padding: var(--s-lg);
+    margin-bottom: var(--s-md);
+    border: 1px solid var(--hairline);
+  }
+  .card-title {
+    font-family: "SF Pro Display", system-ui, -apple-system, sans-serif;
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.19;
+    letter-spacing: 0.231px;
+    color: var(--ink);
+    margin-bottom: var(--s-md);
+  }
+
+  /* =====================================================
+     Form
+     ===================================================== */
+  .field { margin-bottom: var(--s-md); }
+  .field label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.224px;
+    color: var(--ink-muted-80);
+    margin-bottom: 6px;
+  }
+  .field label .req { color: var(--danger); margin-left: 3px; font-weight: 400; }
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-sm);
+    font-size: 17px;
+    line-height: 1.47;
+    letter-spacing: -0.374px;
+    color: var(--ink);
+    background: var(--canvas);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    -webkit-appearance: none;
+    appearance: none;
+    font-family: inherit;
+  }
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    outline: none;
+    border-color: var(--primary-focus);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
+  }
+  .field select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 38px;
+  }
+  .field textarea { min-height: 88px; resize: vertical; }
+  .field-row { display: flex; gap: var(--s-sm); }
+  .field-row .field { flex: 1; }
+
+  /* =====================================================
+     Barcode field (search-input style)
+     ===================================================== */
+  .barcode-wrap { position: relative; }
+  .barcode-wrap input { padding-right: 56px; }
+  .barcode-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--primary);
+    border: none;
+    border-radius: var(--r-pill);
+    color: var(--on-dark);
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.12s ease;
+  }
+  .barcode-btn:active { transform: translateY(-50%) scale(0.95); }
+
+  /* =====================================================
+     Buttons (Apple button system)
+     ===================================================== */
+  .btn {
+    width: 100%;
+    padding: 14px 28px;
+    border: none;
+    border-radius: var(--r-pill);
+    font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: -0.374px;
+    cursor: pointer;
+    transition: transform 0.12s ease, background-color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    line-height: 1.2;
+  }
+  .btn:active { transform: scale(0.95); }
+  .btn-primary { background: var(--primary); color: var(--on-dark); }
+  .btn-primary:focus-visible { outline: 2px solid var(--primary-focus); outline-offset: 2px; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    margin-top: 10px;
+  }
+  .btn-danger { background: var(--danger); color: var(--on-dark); }
+  .btn-accent { background: var(--ink); color: var(--on-dark); }
+  .btn-sm {
+    width: auto;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.224px;
+  }
+
+  /* =====================================================
+     Records list
+     ===================================================== */
+  .record-count {
+    font-size: 14px;
+    color: var(--ink-muted-48);
+    letter-spacing: -0.224px;
+    margin-bottom: var(--s-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .record-item {
+    background: var(--canvas);
+    border-radius: var(--r-lg);
+    margin-bottom: var(--s-sm);
+    border: 1px solid var(--hairline);
+    overflow: hidden;
+  }
+  .record-header {
+    background: var(--canvas-parchment);
+    color: var(--ink);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .record-header .ear-tag {
+    font-family: "SF Pro Display", system-ui, -apple-system, sans-serif;
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: -0.374px;
+  }
+  .record-header .record-date {
+    font-size: 12px;
+    color: var(--ink-muted-48);
+    letter-spacing: -0.12px;
+  }
+  .record-body { padding: var(--s-md) 20px; }
+  .record-body dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; }
+  .record-body dt {
+    font-size: 14px;
+    color: var(--ink-muted-48);
+    font-weight: 400;
+    letter-spacing: -0.224px;
+    white-space: nowrap;
+  }
+  .record-body dd {
+    font-size: 14px;
+    color: var(--ink);
+    letter-spacing: -0.224px;
+  }
+  .record-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    background: var(--surface-pearl);
+  }
+
+  /* =====================================================
+     Scanner modal (true black like Apple video frame)
+     ===================================================== */
+  #scanner-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--surface-black);
+    z-index: 1000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--s-lg);
+  }
+  #scanner-modal.open { display: flex; }
+  .scanner-title {
+    color: var(--on-dark);
+    font-family: "SF Pro Display", system-ui, -apple-system, sans-serif;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: 0.231px;
+    margin-bottom: var(--s-lg);
+  }
+  #scanner-box {
+    position: relative;
+    width: min(90vw, 400px);
+    height: min(60vh, 320px);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    background: var(--surface-black);
+  }
+  #scanner-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .scan-overlay { position: absolute; inset: 0; pointer-events: none; }
+  .scan-corner {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-color: var(--primary-on-dark);
+    border-style: solid;
+  }
+  .scan-corner.tl { top: 20px; left: 20px; border-width: 3px 0 0 3px; }
+  .scan-corner.tr { top: 20px; right: 20px; border-width: 3px 3px 0 0; }
+  .scan-corner.bl { bottom: 20px; left: 20px; border-width: 0 0 3px 3px; }
+  .scan-corner.br { bottom: 20px; right: 20px; border-width: 0 3px 3px 0; }
+  .scan-line {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--primary-on-dark), transparent);
+    animation: scanAnim 2s linear infinite;
+    top: 20px;
+  }
+  @keyframes scanAnim {
+    0%   { top: 20px; }
+    100% { top: calc(100% - 20px); }
+  }
+  .scan-hint {
+    color: var(--body-muted);
+    font-size: 14px;
+    letter-spacing: -0.224px;
+    margin-top: var(--s-md);
+    text-align: center;
+  }
+  .scan-result-bar {
+    background: var(--primary);
+    color: var(--on-dark);
+    padding: 12px 20px;
+    border-radius: var(--r-pill);
+    margin-top: var(--s-md);
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: -0.374px;
+    display: none;
+    text-align: center;
+    width: min(90vw, 400px);
+  }
+  .scan-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: var(--s-md);
+  }
+  .scan-actions button {
+    padding: 11px 22px;
+    border: none;
+    border-radius: var(--r-pill);
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: -0.374px;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .scan-actions button:active { transform: scale(0.95); }
+  #btn-cancel-scan { background: rgba(255,255,255,0.16); color: var(--on-dark); }
+  #btn-confirm-scan { background: var(--primary); color: var(--on-dark); display: none; }
+  #btn-manual-input { background: transparent; color: var(--primary-on-dark); font-size: 14px; letter-spacing: -0.224px; }
+
+  /* =====================================================
+     Toast
+     ===================================================== */
+  #toast {
+    position: fixed;
+    bottom: var(--s-lg);
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--ink);
+    color: var(--on-dark);
+    padding: 12px 22px;
+    border-radius: var(--r-pill);
+    font-size: 14px;
+    letter-spacing: -0.224px;
+    z-index: 2000;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+    max-width: calc(100vw - 40px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.success { background: var(--primary); }
+  #toast.error { background: var(--danger); }
+
+  /* =====================================================
+     Empty state
+     ===================================================== */
+  .empty-state {
+    text-align: center;
+    padding: var(--s-xxl) var(--s-lg);
+    color: var(--ink-muted-48);
+  }
+  .empty-state .icon {
+    font-size: 40px;
+    margin-bottom: var(--s-sm);
+    opacity: 0.5;
+  }
+  .empty-state p { font-size: 17px; letter-spacing: -0.374px; }
+
+  /* =====================================================
+     Filter bar
+     ===================================================== */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: var(--s-md);
+  }
+  .filter-bar input {
+    flex: 1;
+    padding: 12px 20px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-pill);
+    font-size: 17px;
+    letter-spacing: -0.374px;
+    background: var(--canvas);
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .filter-bar input:focus {
+    outline: none;
+    border-color: var(--primary-focus);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
+  }
+
+  /* =====================================================
+     Export section
+     ===================================================== */
+  .export-section {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .export-section button {
+    flex: 1;
+    min-width: 150px;
+  }
+  .preset-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .preset-row button {
+    flex: 1;
+    min-width: 60px;
+    padding: 8px 14px;
+    background: var(--canvas);
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    border-radius: var(--r-pill);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.224px;
+    cursor: pointer;
+    transition: transform 0.12s ease, background-color 0.15s ease;
+  }
+  .preset-row button:active {
+    transform: scale(0.95);
+    background: var(--primary);
+    color: var(--on-dark);
+  }
+
+  /* =====================================================
+     Medicine row
+     ===================================================== */
+  .medicine-row {
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-md);
+    padding: var(--s-sm) var(--s-md);
+    margin-bottom: 10px;
+    background: var(--surface-pearl);
+  }
+  .medicine-row .med-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-muted-80);
+    letter-spacing: -0.12px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .medicine-row .remove-med {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--r-pill);
+    padding: 4px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: -0.12px;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .medicine-row .remove-med:active { transform: scale(0.95); }
+
+  /* =====================================================
+     Settings list editor
+     ===================================================== */
+  .list-editor {
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-md);
+    padding: 8px;
+    background: var(--surface-pearl);
+    margin-bottom: 10px;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .list-editor .empty {
+    color: var(--ink-muted-48);
+    font-size: 14px;
+    letter-spacing: -0.224px;
+    padding: 12px;
+    text-align: center;
+  }
+  .list-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--canvas);
+    border-radius: var(--r-sm);
+    margin-bottom: 4px;
+    border: 1px solid var(--hairline);
+  }
+  .list-row .name {
+    flex: 1;
+    font-size: 14px;
+    letter-spacing: -0.224px;
+    color: var(--ink);
+  }
+  .list-row button {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--r-pill);
+    padding: 4px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: -0.12px;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .list-row button:active { transform: scale(0.95); }
+  .add-row { display: flex; gap: 8px; }
+  .add-row input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-sm);
+    font-size: 14px;
+    letter-spacing: -0.224px;
+    font-family: inherit;
+    background: var(--canvas);
+    color: var(--ink);
+  }
+  .add-row input:focus {
+    outline: none;
+    border-color: var(--primary-focus);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
+  }
+  .add-row button {
+    padding: 10px 22px;
+    background: var(--primary);
+    color: var(--on-dark);
+    border: none;
+    border-radius: var(--r-pill);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.224px;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .add-row button:active { transform: scale(0.95); }
+
+  /* =====================================================
+     Symptoms chips (multi-select)
+     ===================================================== */
+  .chips-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    min-height: 2px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,102,204,0.08);
+    color: var(--primary);
+    border: 1px solid rgba(0,102,204,0.25);
+    border-radius: var(--r-pill);
+    padding: 5px 6px 5px 12px;
+    font-size: 14px;
+    letter-spacing: -0.224px;
+    line-height: 1.2;
+  }
+  .chip .x {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--r-pill);
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: transform 0.12s ease;
+    font-family: inherit;
+  }
+  .chip .x:active { transform: scale(0.9); }
+  .chips-empty {
+    color: var(--ink-muted-48);
+    font-size: 13px;
+    letter-spacing: -0.224px;
+    padding: 4px 0;
+  }
+
+  /* =====================================================
+     Torch toggle (scanner)
+     ===================================================== */
+  .scan-tools {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .torch-btn {
+    background: rgba(255,255,255,0.16);
+    color: var(--on-dark);
+    border: none;
+    border-radius: var(--r-pill);
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: -0.224px;
+    cursor: pointer;
+    transition: transform 0.12s ease, background-color 0.15s ease;
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+  .torch-btn.available { display: inline-flex; }
+  .torch-btn:active { transform: scale(0.95); }
+  .torch-btn.on {
+    background: #ffcc00;
+    color: var(--ink);
+  }
+
+  /* =====================================================
+     Scan preview (in form) + record image thumb
+     ===================================================== */
+  #scan-preview {
+    margin-top: 10px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-md);
+    padding: 10px;
+    background: var(--surface-pearl);
+    display: none;
+  }
+  #scan-preview.show { display: block; }
+  #scan-preview-img {
+    display: block;
+    width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+    border-radius: var(--r-sm);
+    margin-bottom: 8px;
+  }
+  #scan-preview .clear-img {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--r-pill);
+    padding: 4px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: -0.12px;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  #scan-preview .clear-img:active { transform: scale(0.95); }
+
+  .record-image {
+    padding: 12px 20px 0;
+  }
+  .record-image img {
+    width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+    border-radius: var(--r-md);
+    cursor: zoom-in;
+    display: block;
+  }
+
+  /* Image lightbox */
+  #image-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--surface-black);
+    z-index: 1500;
+    align-items: center;
+    justify-content: center;
+    padding: var(--s-md);
+  }
+  #image-modal.open { display: flex; }
+  #image-modal img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: var(--r-sm);
+  }
+  #image-modal .close-img {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.16);
+    color: var(--on-dark);
+    border: none;
+    border-radius: var(--r-pill);
+    padding: 8px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: -0.224px;
+    cursor: pointer;
+  }
+
+  /* =====================================================
+     Confirm modal
+     ===================================================== */
+  #confirm-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #confirm-modal.open { display: flex; }
+  .confirm-box {
+    background: var(--canvas);
+    border-radius: var(--r-lg);
+    padding: var(--s-lg);
+    max-width: 340px;
+    width: 100%;
+    border: 1px solid var(--hairline);
+  }
+  .confirm-box h3 {
+    font-family: "SF Pro Display", system-ui, -apple-system, sans-serif;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: 0.231px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .confirm-box p {
+    font-size: 14px;
+    letter-spacing: -0.224px;
+    color: var(--ink-muted-80);
+    margin-bottom: var(--s-lg);
+  }
+  .confirm-actions { display: flex; gap: 10px; }
+  .confirm-actions button { flex: 1; margin-top: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 data-i18n="app.title">🐄 家畜診療記録</h1>
+  <div class="right">
+    <select id="lang-select" class="lang-select" onchange="changeLanguage(this.value)">
+      <option value="ja">🇯🇵 日本語</option>
+      <option value="en">🇬🇧 English</option>
+      <option value="fil">🇵🇭 Filipino</option>
+    </select>
+    <span class="badge" id="record-badge">0件</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('form')" data-i18n="tab.entry">📝 入力</button>
+  <button class="tab-btn" onclick="switchTab('list')" data-i18n="tab.list">📋 一覧</button>
+  <button class="tab-btn" onclick="switchTab('settings')" data-i18n="tab.settings">⚙️ 設定</button>
+  <button class="tab-btn" onclick="switchTab('export')" data-i18n="tab.export">📤 出力</button>
+</div>
+
+<!-- ====== NEW RECORD FORM ====== -->
+<div class="view active" id="view-form">
+  <div class="card">
+    <div class="card-title" data-i18n="form.section.location">📅 日時・場所</div>
+    <div class="field-row">
+      <div class="field">
+        <label><span data-i18n="form.date">日付</span><span class="req">*</span></label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="field">
+        <label><span data-i18n="form.time">時間</span><span class="req">*</span></label>
+        <input type="time" id="f-time">
+      </div>
+    </div>
+    <div class="field">
+      <label><span data-i18n="form.room">部屋番号</span><span class="req">*</span></label>
+      <select id="f-room" onchange="toggleOther('f-room','f-room-other')">
+        <option value="" data-i18n="form.selectPlaceholder">-- 選択してください --</option>
+      </select>
+      <input type="text" id="f-room-other" data-i18n-placeholder="form.room.placeholder" placeholder="部屋番号を入力（例: A-01, 第2牛舎）" style="display:none;margin-top:8px;">
+      <small data-i18n="form.room.hint" style="display:block;font-size:12px;color:var(--ink-muted-48);margin-top:4px;letter-spacing:-0.12px;">
+        部屋番号は「⚙️ 設定」タブで追加・編集できます
+      </small>
+    </div>
+    <div class="field">
+      <label data-i18n="form.handler">担当者</label>
+      <select id="f-handler" onchange="toggleOther('f-handler','f-handler-other')">
+        <option value="" data-i18n="form.selectPlaceholder">-- 選択してください --</option>
+      </select>
+      <input type="text" id="f-handler-other" data-i18n-placeholder="form.handler.placeholder" placeholder="担当者名を入力" style="display:none;margin-top:8px;">
+      <small data-i18n="form.handler.hint" style="display:block;font-size:12px;color:var(--ink-muted-48);margin-top:4px;letter-spacing:-0.12px;">
+        担当者は「⚙️ 設定」タブで追加・編集できます
+      </small>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" data-i18n="form.section.id">🏷️ 個体識別</div>
+    <div class="field">
+      <label><span data-i18n="form.eartag">耳標番号</span><span class="req">*</span></label>
+      <div class="barcode-wrap">
+        <input type="text" id="f-eartag" data-i18n-placeholder="form.eartag.placeholder" placeholder="耳標番号を入力またはスキャン" inputmode="numeric" pattern="[0-9]*">
+        <button class="barcode-btn" onclick="openScanner()" title="バーコードスキャン">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="3" y="7" width="2" height="10"/><rect x="7" y="7" width="1" height="10"/>
+            <rect x="10" y="7" width="2" height="10"/><rect x="14" y="7" width="1" height="10"/>
+            <rect x="17" y="7" width="2" height="10"/>
+            <path d="M1 4h4M1 20h4M19 4h4M19 20h4" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div id="scan-preview">
+        <img id="scan-preview-img" alt="">
+        <button type="button" class="clear-img" onclick="clearScanImage()" data-i18n="scanner.removeImage">画像を削除</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" data-i18n="form.section.treatment">🩺 診療内容</div>
+    <div class="field">
+      <label><span data-i18n="form.symptoms">症状</span><span class="req">*</span><span data-i18n="form.symptoms.multi">（複数選択可）</span></label>
+      <div id="symptoms-chips" class="chips-wrap"></div>
+      <select id="f-symptoms" onchange="onSymptomSelectChange()">
+        <option value="" data-i18n="form.symptoms.add">＋ 症状を追加</option>
+      </select>
+      <input type="text" id="f-symptoms-other" data-i18n-placeholder="form.symptoms.placeholder" placeholder="症状を入力して Enter または『追加』" style="display:none;margin-top:8px;"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();addSymptomOther();}">
+      <button type="button" id="f-symptoms-add-btn" class="btn btn-secondary btn-sm" style="display:none;margin-top:8px;" onclick="addSymptomOther()" data-i18n="form.add">
+        ＋ 追加
+      </button>
+      <small data-i18n="form.symptoms.hint" style="display:block;font-size:12px;color:var(--ink-muted-48);margin-top:4px;letter-spacing:-0.12px;">
+        症状リストは「⚙️ 設定」タブで編集できます
+      </small>
+    </div>
+    <div class="field">
+      <label data-i18n="form.temperature">体温 (°C)</label>
+      <input type="number" id="f-temperature" placeholder="39.8" step="0.1" min="30" max="45" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label data-i18n="form.medicine">使用薬品</label>
+      <div id="medicines-container"></div>
+      <button class="btn btn-secondary btn-sm" type="button" onclick="addMedicineRow()" style="margin-top:8px;" data-i18n="form.addMedicine">
+        ＋ 薬品を追加
+      </button>
+      <small data-i18n="form.medicine.hint" style="display:block;font-size:12px;color:var(--ink-muted-48);margin-top:4px;letter-spacing:-0.12px;">
+        薬品リストは「⚙️ 設定」タブで編集できます
+      </small>
+    </div>
+    <div class="field">
+      <label data-i18n="form.notes">備考</label>
+      <textarea id="f-notes" data-i18n-placeholder="form.notes.placeholder" placeholder="追加メモ、次回処置予定など"></textarea>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveRecord()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5L20 7"/></svg>
+    <span data-i18n="form.save">記録を保存</span>
+  </button>
+  <button class="btn btn-secondary" onclick="clearForm()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    <span data-i18n="form.clear">フォームをクリア</span>
+  </button>
+</div>
+
+<!-- ====== RECORDS LIST ====== -->
+<div class="view" id="view-list">
+  <div class="filter-bar">
+    <input type="text" id="search-input" data-i18n-placeholder="list.searchPlaceholder" placeholder="🔍 耳標・症状・薬品で検索…" oninput="renderList()">
+  </div>
+  <div class="record-count">
+    <span id="list-count">0件</span>
+    <button class="btn btn-danger btn-sm" onclick="confirmDeleteAll()" data-i18n="list.deleteAll">全件削除</button>
+  </div>
+  <div id="records-container"></div>
+</div>
+
+<!-- ====== SETTINGS ====== -->
+<div class="view" id="view-settings">
+  <div class="card">
+    <div class="card-title" data-i18n="settings.rooms">🏠 部屋番号リスト</div>
+    <p data-i18n="settings.rooms.hint" style="font-size:14px;color:var(--ink-muted-48);margin-bottom:10px;letter-spacing:-0.224px;">
+      登録した部屋番号が入力フォームのプルダウンに表示されます。
+    </p>
+    <div class="list-editor" id="rooms-editor"></div>
+    <div class="add-row">
+      <input type="text" id="new-room" data-i18n-placeholder="settings.rooms.placeholder" placeholder="例: A-01, 第2牛舎">
+      <button onclick="addListItem('rooms','new-room')" data-i18n="settings.add">追加</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" data-i18n="settings.handlers">👥 担当者リスト</div>
+    <p data-i18n="settings.handlers.hint" style="font-size:14px;color:var(--ink-muted-48);margin-bottom:10px;letter-spacing:-0.224px;">
+      登録した担当者が入力フォームのプルダウンに表示されます。1人だけ登録した場合は自動でセットされます。
+    </p>
+    <div class="list-editor" id="handlers-editor"></div>
+    <div class="add-row">
+      <input type="text" id="new-handler" data-i18n-placeholder="settings.handlers.placeholder" placeholder="新しい担当者名">
+      <button onclick="addListItem('handlers','new-handler')" data-i18n="settings.add">追加</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" data-i18n="settings.symptoms">🩺 症状リスト</div>
+    <div class="list-editor" id="symptoms-editor"></div>
+    <div class="add-row">
+      <input type="text" id="new-symptom" data-i18n-placeholder="settings.symptoms.placeholder" placeholder="新しい症状名">
+      <button onclick="addListItem('symptoms','new-symptom')" data-i18n="settings.add">追加</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" data-i18n="settings.medicines">💊 薬品リスト</div>
+    <div class="list-editor" id="medicines-editor"></div>
+    <div class="add-row">
+      <input type="text" id="new-medicine" data-i18n-placeholder="settings.medicines.placeholder" placeholder="新しい薬品名">
+      <button onclick="addListItem('medicines','new-medicine')" data-i18n="settings.add">追加</button>
+    </div>
+  </div>
+
+  <button class="btn btn-secondary" onclick="resetLists()" data-i18n="settings.reset">リストを初期値にリセット</button>
+</div>
+
+<!-- ====== EXPORT ====== -->
+<div class="view" id="view-export">
+  <div class="card">
+    <div class="card-title" data-i18n="export.title">📊 データエクスポート</div>
+    <p data-i18n="export.desc" style="font-size:14px;color:var(--ink-muted-48);margin-bottom:12px;letter-spacing:-0.224px;">
+      保存された診療記録をファイルにエクスポートします。
+    </p>
+
+    <div class="field">
+      <label data-i18n="export.range">📅 期間（記録日で絞り込み）</label>
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0;">
+          <input type="date" id="export-from" onchange="updateExportPreview()">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <input type="date" id="export-to" onchange="updateExportPreview()">
+        </div>
+      </div>
+      <div class="preset-row">
+        <button type="button" onclick="setExportPreset('today')" data-i18n="preset.today">今日</button>
+        <button type="button" onclick="setExportPreset('week')" data-i18n="preset.week">今週</button>
+        <button type="button" onclick="setExportPreset('month')" data-i18n="preset.month">今月</button>
+        <button type="button" onclick="setExportPreset('30days')" data-i18n="preset.30days">過去30日</button>
+        <button type="button" onclick="setExportPreset('all')" data-i18n="preset.all">全期間</button>
+      </div>
+      <div id="export-preview" style="font-size:14px;color:var(--ink-muted-48);margin-top:8px;letter-spacing:-0.224px;"></div>
+    </div>
+
+    <div class="export-section" style="margin-top:12px;">
+      <button class="btn btn-primary" onclick="exportCSV()" data-i18n="export.csv">
+        📄 CSV形式でダウンロード
+      </button>
+      <button class="btn btn-accent" onclick="exportJSON()" data-i18n="export.json">
+        💾 JSONバックアップ（画像付き）
+      </button>
+      <button class="btn btn-secondary" onclick="exportHTMLReport()" style="margin-top:0;" data-i18n="export.htmlReport">
+        📋 HTMLレポート（画像付き・印刷可）
+      </button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" data-i18n="import.title">📥 データインポート</div>
+    <p data-i18n="import.desc" style="font-size:14px;color:var(--ink-muted-48);margin-bottom:12px;letter-spacing:-0.224px;">
+      JSONバックアップファイルから復元します。
+    </p>
+    <div class="field">
+      <label data-i18n="import.selectFile">JSONファイルを選択</label>
+      <input type="file" id="import-file" accept=".json" onchange="importJSON(event)">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" data-i18n="stats.title">ℹ️ データ情報</div>
+    <div id="data-stats" style="font-size:14px;line-height:1.8;color:var(--ink-muted-48);letter-spacing:-0.224px;"></div>
+  </div>
+</div>
+
+<!-- ====== SCANNER MODAL ====== -->
+<div id="scanner-modal">
+  <div class="scanner-title" data-i18n="scanner.title">📷 バーコードスキャン</div>
+  <div id="scanner-box">
+    <video id="scanner-video" playsinline muted autoplay></video>
+    <div class="scan-overlay">
+      <div class="scan-corner tl"></div>
+      <div class="scan-corner tr"></div>
+      <div class="scan-corner bl"></div>
+      <div class="scan-corner br"></div>
+      <div class="scan-line"></div>
+    </div>
+  </div>
+  <div class="scan-tools">
+    <button type="button" id="torch-btn" class="torch-btn" onclick="toggleTorch()">
+      💡 <span id="torch-label" data-i18n="scanner.torch.on">ライトON</span>
+    </button>
+  </div>
+  <div class="scan-result-bar" id="scan-result-bar"></div>
+  <p class="scan-hint" data-i18n="scanner.hint">バーコードをフレーム内に合わせてください</p>
+  <div class="scan-actions">
+    <button id="btn-cancel-scan" onclick="closeScanner()" data-i18n="scanner.cancel">キャンセル</button>
+    <button id="btn-manual-input" onclick="manualInput()" data-i18n="scanner.manual">手動入力</button>
+    <button id="btn-confirm-scan" onclick="confirmScan()" data-i18n="scanner.confirm">✓ 確定</button>
+  </div>
+</div>
+
+<!-- ====== CONFIRM MODAL ====== -->
+<div id="confirm-modal">
+  <div class="confirm-box">
+    <h3 id="confirm-title">確認</h3>
+    <p id="confirm-message">よろしいですか？</p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" onclick="closeConfirm()" data-i18n="confirm.cancel">キャンセル</button>
+      <button class="btn btn-danger" id="confirm-ok" data-i18n="confirm.ok">削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== IMAGE LIGHTBOX ====== -->
+<div id="image-modal" onclick="closeImageModal()">
+  <button class="close-img" type="button" onclick="event.stopPropagation();closeImageModal()" data-i18n="image.close">閉じる</button>
+  <img id="image-modal-img" alt="">
+</div>
+
+<!-- ====== TOAST ====== -->
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// I18N — Japanese / English / Filipino
+// ============================================================
+const LANG_KEY = 'livestock_lang_v1';
+let currentLang = 'ja';
+
+const I18N = {
+  ja: {
+    'app.title': '🐄 家畜診療記録',
+    'tab.entry': '📝 入力',
+    'tab.list': '📋 一覧',
+    'tab.settings': '⚙️ 設定',
+    'tab.export': '📤 出力',
+    'form.section.location': '📅 日時・場所',
+    'form.section.id': '🏷️ 個体識別',
+    'form.section.treatment': '🩺 診療内容',
+    'form.date': '日付',
+    'form.time': '時間',
+    'form.room': '部屋番号',
+    'form.room.placeholder': '部屋番号を入力（例: A-01, 第2牛舎）',
+    'form.room.hint': '部屋番号は「⚙️ 設定」タブで追加・編集できます',
+    'form.handler': '担当者',
+    'form.handler.placeholder': '担当者名を入力',
+    'form.handler.hint': '担当者は「⚙️ 設定」タブで追加・編集できます',
+    'form.eartag': '耳標番号',
+    'form.eartag.placeholder': '耳標番号を入力またはスキャン',
+    'form.symptoms': '症状',
+    'form.symptoms.multi': '（複数選択可）',
+    'form.symptoms.add': '＋ 症状を追加',
+    'form.symptoms.placeholder': '症状を入力して Enter または『追加』',
+    'form.symptoms.hint': '症状リストは「⚙️ 設定」タブで編集できます',
+    'form.temperature': '体温 (°C)',
+    'form.medicine': '使用薬品',
+    'form.medicine.row': '使用薬品',
+    'form.medicine.select': '-- 選択 --',
+    'form.dosage': '使用量',
+    'form.dosage.placeholder': '例: 10mL, 2錠',
+    'form.medicine.placeholder': '薬品名を入力',
+    'form.medicine.hint': '薬品リストは「⚙️ 設定」タブで編集できます',
+    'form.notes': '備考',
+    'form.notes.placeholder': '追加メモ、次回処置予定など',
+    'form.save': '記録を保存',
+    'form.clear': 'フォームをクリア',
+    'form.add': '＋ 追加',
+    'form.addMedicine': '＋ 薬品を追加',
+    'form.delete': '削除',
+    'form.selectPlaceholder': '-- 選択してください --',
+    'form.other': 'その他',
+    'form.otherOption': 'その他（自由入力）',
+    'list.searchPlaceholder': '🔍 耳標・症状・薬品で検索…',
+    'list.deleteAll': '全件削除',
+    'list.empty': '記録がまだありません',
+    'list.emptySearch': '検索結果が見つかりません',
+    'list.edit': '✏️ 編集',
+    'list.delete': '🗑️ 削除',
+    'list.count': '{n}件',
+    'list.countOf': '{n}件 / 全{total}件',
+    'rec.room': '部屋番号',
+    'rec.handler': '担当者',
+    'rec.symptoms': '症状',
+    'rec.temperature': '体温',
+    'rec.medicine': '使用薬品',
+    'rec.notes': '備考',
+    'settings.rooms': '🏠 部屋番号リスト',
+    'settings.rooms.hint': '登録した部屋番号が入力フォームのプルダウンに表示されます。',
+    'settings.rooms.placeholder': '例: A-01, 第2牛舎',
+    'settings.handlers': '👥 担当者リスト',
+    'settings.handlers.hint': '登録した担当者が入力フォームのプルダウンに表示されます。1人だけ登録した場合は自動でセットされます。',
+    'settings.handlers.placeholder': '新しい担当者名',
+    'settings.symptoms': '🩺 症状リスト',
+    'settings.symptoms.placeholder': '新しい症状名',
+    'settings.medicines': '💊 薬品リスト',
+    'settings.medicines.placeholder': '新しい薬品名',
+    'settings.add': '追加',
+    'settings.reset': 'リストを初期値にリセット',
+    'settings.empty': 'まだ登録されていません',
+    'settings.delete': '削除',
+    'export.title': '📊 データエクスポート',
+    'export.desc': '保存された診療記録をファイルにエクスポートします。',
+    'export.range': '📅 期間（記録日で絞り込み）',
+    'preset.today': '今日',
+    'preset.week': '今週',
+    'preset.month': '今月',
+    'preset.30days': '過去30日',
+    'preset.all': '全期間',
+    'export.csv': '📄 CSV形式でダウンロード',
+    'export.json': '💾 JSONバックアップ（画像付き）',
+    'export.htmlReport': '📋 HTMLレポート（画像付き・印刷可）',
+    'import.title': '📥 データインポート',
+    'import.desc': 'JSONバックアップファイルから復元します。',
+    'import.selectFile': 'JSONファイルを選択',
+    'stats.title': 'ℹ️ データ情報',
+    'stats.total': '総記録件数',
+    'stats.uniqueTags': 'ユニーク耳標',
+    'stats.rooms': '管理部屋数',
+    'stats.latest': '最終記録',
+    'stats.records': '件',
+    'stats.heads': '頭',
+    'stats.roomsUnit': '部屋',
+    'scanner.title': '📷 バーコードスキャン',
+    'scanner.hint': 'バーコードをフレーム内に合わせてください',
+    'scanner.cancel': 'キャンセル',
+    'scanner.manual': '手動入力',
+    'scanner.confirm': '✓ 確定',
+    'scanner.torch.on': 'ライトON',
+    'scanner.torch.off': 'ライトOFF',
+    'scanner.removeImage': '画像を削除',
+    'scanner.notSupported': 'このブラウザはバーコードスキャンに対応していません。手動入力ボタンをご利用ください。',
+    'scanner.scanned': '読み取り: ',
+    'image.close': '閉じる',
+    'confirm.title': '確認',
+    'confirm.ok': '削除',
+    'confirm.cancel': 'キャンセル',
+    'confirm.deleteOne': 'この記録を削除しますか？',
+    'confirm.deleteOneDesc': 'この操作は取り消せません。',
+    'confirm.deleteAll': '全{n}件の記録を削除しますか？',
+    'confirm.deleteAllDesc': 'この操作は取り消せません。全件削除されます。',
+    'confirm.delete': '削除しますか？',
+    'confirm.deleteListItem': '「{name}」を {list} から削除します。',
+    'confirm.reset': '初期値に戻しますか？',
+    'confirm.resetDesc': '部屋番号・担当者・症状・薬品リストがすべて初期値に置き換わります。',
+    'confirm.import': '{n}件のデータをインポートしますか？',
+    'confirm.importDesc': '既存の記録と統合（重複IDは上書き）されます。',
+    'toast.saved': '記録を保存しました ✓',
+    'toast.required': '必須項目（日付・時間・部屋番号・耳標番号・症状）を入力してください',
+    'toast.deleted': '削除しました',
+    'toast.deletedAll': '全件削除しました',
+    'toast.noRecordsDelete': '削除する記録がありません',
+    'toast.editLoaded': '編集のため記録を読み込みました',
+    'toast.added': '追加しました',
+    'toast.duplicate': '既に追加されています',
+    'toast.duplicateList': '既に登録されています',
+    'toast.enterName': '名前を入力してください',
+    'toast.listReset': 'リストを初期値に戻しました',
+    'toast.cameraDenied': 'カメラの許可が必要です。設定からカメラアクセスを許可してください。',
+    'toast.cameraError': 'カメラを起動できませんでした',
+    'toast.scanned': '耳標番号を読み取りました: ',
+    'toast.scannedImage': '（画像保存）',
+    'toast.dateUpdated': '（日時を更新）',
+    'toast.eartagSet': '耳標番号を設定しました（日時を更新）',
+    'toast.imageRemoved': '画像を削除しました',
+    'toast.torchError': 'ライトを切り替えできません',
+    'toast.exportEmpty': 'エクスポートする記録がありません',
+    'toast.exportNoRange': '指定期間に該当する記録がありません',
+    'toast.csvDone': 'CSVをダウンロードしました（{n}件）',
+    'toast.jsonDone': 'JSONバックアップをダウンロードしました（{n}件）',
+    'toast.htmlDone': 'HTMLレポートを出力しました（{n}件、画像{m}枚）',
+    'toast.imported': '{n}件インポートしました',
+    'toast.importError': 'ファイルの読み込みに失敗しました',
+    'toast.langChanged': '言語を切り替えました',
+    'manual.prompt': '耳標番号を入力してください:',
+    'rangeText.all': '全期間',
+    'rangeText.from': '最初',
+    'rangeText.to': '最新',
+    'export.preview': '対象: {range} — {n}件 / 全{total}件',
+    'export.rangeWarn': '⚠ 開始日が終了日より後になっています',
+    'list.rooms': '部屋番号リスト',
+    'list.handlers': '担当者リスト',
+    'list.symptoms': '症状リスト',
+    'list.medicines': '薬品リスト',
+    'report.title': '家畜診療記録レポート',
+    'report.meta': '対象: {range} ／ {n}件 ／ 出力: {when}',
+    'report.print': '🖨 印刷 / PDF保存',
+    'report.footer': '家畜診療記録アプリ — Generated {when}',
+    'report.unset': '—',
+    'unset': '-'
+  },
+  en: {
+    'app.title': '🐄 Livestock Record',
+    'tab.entry': '📝 Entry',
+    'tab.list': '📋 List',
+    'tab.settings': '⚙️ Settings',
+    'tab.export': '📤 Export',
+    'form.section.location': '📅 Date & Location',
+    'form.section.id': '🏷️ Identification',
+    'form.section.treatment': '🩺 Treatment',
+    'form.date': 'Date',
+    'form.time': 'Time',
+    'form.room': 'Room #',
+    'form.room.placeholder': 'Enter room (e.g. A-01, Barn 2)',
+    'form.room.hint': 'Edit room list in the ⚙️ Settings tab',
+    'form.handler': 'Staff',
+    'form.handler.placeholder': 'Enter staff name',
+    'form.handler.hint': 'Edit staff list in the ⚙️ Settings tab',
+    'form.eartag': 'Ear Tag #',
+    'form.eartag.placeholder': 'Enter or scan ear tag number',
+    'form.symptoms': 'Symptoms',
+    'form.symptoms.multi': ' (multiple)',
+    'form.symptoms.add': '+ Add symptom',
+    'form.symptoms.placeholder': 'Type symptom then press Enter or Add',
+    'form.symptoms.hint': 'Edit symptom list in the ⚙️ Settings tab',
+    'form.temperature': 'Temperature (°C)',
+    'form.medicine': 'Medicine',
+    'form.medicine.row': 'Medicine',
+    'form.medicine.select': '-- Select --',
+    'form.dosage': 'Dosage',
+    'form.dosage.placeholder': 'e.g. 10mL, 2 tabs',
+    'form.medicine.placeholder': 'Enter medicine name',
+    'form.medicine.hint': 'Edit medicine list in the ⚙️ Settings tab',
+    'form.notes': 'Notes',
+    'form.notes.placeholder': 'Additional notes, follow-up plans, etc.',
+    'form.save': 'Save Record',
+    'form.clear': 'Clear Form',
+    'form.add': '+ Add',
+    'form.addMedicine': '+ Add medicine',
+    'form.delete': 'Delete',
+    'form.selectPlaceholder': '-- Please select --',
+    'form.other': 'Other',
+    'form.otherOption': 'Other (free text)',
+    'list.searchPlaceholder': '🔍 Search by ear tag, symptom, medicine…',
+    'list.deleteAll': 'Delete All',
+    'list.empty': 'No records yet',
+    'list.emptySearch': 'No results found',
+    'list.edit': '✏️ Edit',
+    'list.delete': '🗑️ Delete',
+    'list.count': '{n} records',
+    'list.countOf': '{n} / {total} records',
+    'rec.room': 'Room',
+    'rec.handler': 'Staff',
+    'rec.symptoms': 'Symptoms',
+    'rec.temperature': 'Temp',
+    'rec.medicine': 'Medicine',
+    'rec.notes': 'Notes',
+    'settings.rooms': '🏠 Room List',
+    'settings.rooms.hint': 'Registered rooms appear in the entry form dropdown.',
+    'settings.rooms.placeholder': 'e.g. A-01, Barn 2',
+    'settings.handlers': '👥 Staff List',
+    'settings.handlers.hint': 'Registered staff appear in the entry form dropdown. With only one entry, it auto-selects.',
+    'settings.handlers.placeholder': 'New staff name',
+    'settings.symptoms': '🩺 Symptom List',
+    'settings.symptoms.placeholder': 'New symptom',
+    'settings.medicines': '💊 Medicine List',
+    'settings.medicines.placeholder': 'New medicine',
+    'settings.add': 'Add',
+    'settings.reset': 'Reset Lists to Defaults',
+    'settings.empty': 'No entries yet',
+    'settings.delete': 'Delete',
+    'export.title': '📊 Export Data',
+    'export.desc': 'Export saved records to a file.',
+    'export.range': '📅 Date Range (filter by record date)',
+    'preset.today': 'Today',
+    'preset.week': 'This Week',
+    'preset.month': 'This Month',
+    'preset.30days': 'Last 30 Days',
+    'preset.all': 'All Time',
+    'export.csv': '📄 Download CSV',
+    'export.json': '💾 JSON Backup (with images)',
+    'export.htmlReport': '📋 HTML Report (with images, printable)',
+    'import.title': '📥 Import Data',
+    'import.desc': 'Restore from a JSON backup file.',
+    'import.selectFile': 'Select JSON file',
+    'stats.title': 'ℹ️ Data Info',
+    'stats.total': 'Total records',
+    'stats.uniqueTags': 'Unique ear tags',
+    'stats.rooms': 'Rooms in use',
+    'stats.latest': 'Latest record',
+    'stats.records': '',
+    'stats.heads': ' head',
+    'stats.roomsUnit': '',
+    'scanner.title': '📷 Barcode Scan',
+    'scanner.hint': 'Align the barcode within the frame',
+    'scanner.cancel': 'Cancel',
+    'scanner.manual': 'Manual',
+    'scanner.confirm': '✓ Confirm',
+    'scanner.torch.on': 'Light ON',
+    'scanner.torch.off': 'Light OFF',
+    'scanner.removeImage': 'Remove image',
+    'scanner.notSupported': 'This browser does not support barcode scanning. Please use the manual input button.',
+    'scanner.scanned': 'Scanned: ',
+    'image.close': 'Close',
+    'confirm.title': 'Confirm',
+    'confirm.ok': 'Delete',
+    'confirm.cancel': 'Cancel',
+    'confirm.deleteOne': 'Delete this record?',
+    'confirm.deleteOneDesc': 'This action cannot be undone.',
+    'confirm.deleteAll': 'Delete all {n} records?',
+    'confirm.deleteAllDesc': 'This action cannot be undone. All records will be deleted.',
+    'confirm.delete': 'Delete?',
+    'confirm.deleteListItem': 'Remove "{name}" from {list}.',
+    'confirm.reset': 'Reset to defaults?',
+    'confirm.resetDesc': 'Room, staff, symptom and medicine lists will all be replaced with defaults.',
+    'confirm.import': 'Import {n} records?',
+    'confirm.importDesc': 'Will merge with existing records (duplicate IDs overwritten).',
+    'toast.saved': 'Record saved ✓',
+    'toast.required': 'Please fill required fields (date, time, room, ear tag, symptoms)',
+    'toast.deleted': 'Deleted',
+    'toast.deletedAll': 'All records deleted',
+    'toast.noRecordsDelete': 'No records to delete',
+    'toast.editLoaded': 'Record loaded for editing',
+    'toast.added': 'Added',
+    'toast.duplicate': 'Already added',
+    'toast.duplicateList': 'Already registered',
+    'toast.enterName': 'Please enter a name',
+    'toast.listReset': 'Lists reset to defaults',
+    'toast.cameraDenied': 'Camera permission required. Please enable camera access in settings.',
+    'toast.cameraError': 'Could not start camera',
+    'toast.scanned': 'Ear tag scanned: ',
+    'toast.scannedImage': ' (image saved)',
+    'toast.dateUpdated': ' (date/time updated)',
+    'toast.eartagSet': 'Ear tag set (date/time updated)',
+    'toast.imageRemoved': 'Image removed',
+    'toast.torchError': 'Cannot toggle light',
+    'toast.exportEmpty': 'No records to export',
+    'toast.exportNoRange': 'No records match the selected range',
+    'toast.csvDone': 'CSV downloaded ({n} records)',
+    'toast.jsonDone': 'JSON backup downloaded ({n} records)',
+    'toast.htmlDone': 'HTML report generated ({n} records, {m} images)',
+    'toast.imported': 'Imported {n} records',
+    'toast.importError': 'Failed to read file',
+    'toast.langChanged': 'Language changed',
+    'manual.prompt': 'Enter ear tag number:',
+    'rangeText.all': 'All time',
+    'rangeText.from': 'beginning',
+    'rangeText.to': 'latest',
+    'export.preview': 'Target: {range} — {n} / {total} records',
+    'export.rangeWarn': '⚠ Start date is after end date',
+    'list.rooms': 'Room list',
+    'list.handlers': 'Staff list',
+    'list.symptoms': 'Symptom list',
+    'list.medicines': 'Medicine list',
+    'report.title': 'Livestock Treatment Report',
+    'report.meta': 'Range: {range} / {n} records / Generated: {when}',
+    'report.print': '🖨 Print / Save as PDF',
+    'report.footer': 'Livestock Record App — Generated {when}',
+    'report.unset': '—',
+    'unset': '-'
+  },
+  fil: {
+    'app.title': '🐄 Talaan ng Hayupan',
+    'tab.entry': '📝 Pasok',
+    'tab.list': '📋 Listahan',
+    'tab.settings': '⚙️ Setting',
+    'tab.export': '📤 I-export',
+    'form.section.location': '📅 Petsa at Lokasyon',
+    'form.section.id': '🏷️ Pagkakakilanlan',
+    'form.section.treatment': '🩺 Paggamot',
+    'form.date': 'Petsa',
+    'form.time': 'Oras',
+    'form.room': 'Bilang ng Kuwarto',
+    'form.room.placeholder': 'Ilagay ang kuwarto (hal. A-01, Kamalig 2)',
+    'form.room.hint': 'I-edit ang listahan ng kuwarto sa tab na ⚙️ Setting',
+    'form.handler': 'Tagapag-alaga',
+    'form.handler.placeholder': 'Ilagay ang pangalan',
+    'form.handler.hint': 'I-edit ang listahan ng tagapag-alaga sa tab na ⚙️ Setting',
+    'form.eartag': 'Tag sa Tainga',
+    'form.eartag.placeholder': 'Ilagay o i-scan ang tag number',
+    'form.symptoms': 'Mga Sintomas',
+    'form.symptoms.multi': ' (maraming pwede)',
+    'form.symptoms.add': '+ Magdagdag ng sintomas',
+    'form.symptoms.placeholder': 'I-type at pindutin ang Enter o Idagdag',
+    'form.symptoms.hint': 'I-edit ang listahan ng sintomas sa tab na ⚙️ Setting',
+    'form.temperature': 'Temperatura (°C)',
+    'form.medicine': 'Gamot',
+    'form.medicine.row': 'Gamot',
+    'form.medicine.select': '-- Pumili --',
+    'form.dosage': 'Dosis',
+    'form.dosage.placeholder': 'hal. 10mL, 2 tableta',
+    'form.medicine.placeholder': 'Ilagay ang pangalan ng gamot',
+    'form.medicine.hint': 'I-edit ang listahan ng gamot sa tab na ⚙️ Setting',
+    'form.notes': 'Tala',
+    'form.notes.placeholder': 'Karagdagang tala, susunod na lunas, atbp.',
+    'form.save': 'I-save ang Talaan',
+    'form.clear': 'Burahin ang Form',
+    'form.add': '+ Idagdag',
+    'form.addMedicine': '+ Magdagdag ng gamot',
+    'form.delete': 'Burahin',
+    'form.selectPlaceholder': '-- Pakipili --',
+    'form.other': 'Iba pa',
+    'form.otherOption': 'Iba pa (i-type)',
+    'list.searchPlaceholder': '🔍 Hanapin sa tag, sintomas, gamot…',
+    'list.deleteAll': 'Burahin Lahat',
+    'list.empty': 'Walang pa rin talaan',
+    'list.emptySearch': 'Walang nahanap',
+    'list.edit': '✏️ I-edit',
+    'list.delete': '🗑️ Burahin',
+    'list.count': '{n} talaan',
+    'list.countOf': '{n} / {total} talaan',
+    'rec.room': 'Kuwarto',
+    'rec.handler': 'Tagapag-alaga',
+    'rec.symptoms': 'Sintomas',
+    'rec.temperature': 'Temp',
+    'rec.medicine': 'Gamot',
+    'rec.notes': 'Tala',
+    'settings.rooms': '🏠 Listahan ng Kuwarto',
+    'settings.rooms.hint': 'Ang mga nakarehistrong kuwarto ay lalabas sa dropdown ng form.',
+    'settings.rooms.placeholder': 'hal. A-01, Kamalig 2',
+    'settings.handlers': '👥 Listahan ng Tagapag-alaga',
+    'settings.handlers.hint': 'Ang mga nakarehistrong tagapag-alaga ay lalabas sa dropdown. Kapag isa lang, awtomatikong napipili.',
+    'settings.handlers.placeholder': 'Bagong pangalan',
+    'settings.symptoms': '🩺 Listahan ng Sintomas',
+    'settings.symptoms.placeholder': 'Bagong sintomas',
+    'settings.medicines': '💊 Listahan ng Gamot',
+    'settings.medicines.placeholder': 'Bagong gamot',
+    'settings.add': 'Idagdag',
+    'settings.reset': 'I-reset ang Lahat ng Listahan',
+    'settings.empty': 'Wala pa',
+    'settings.delete': 'Burahin',
+    'export.title': '📊 I-export ang Data',
+    'export.desc': 'I-export ang mga naka-save na talaan sa file.',
+    'export.range': '📅 Saklaw ng Petsa (filter ayon sa petsa)',
+    'preset.today': 'Ngayon',
+    'preset.week': 'Linggong ito',
+    'preset.month': 'Buwang ito',
+    'preset.30days': 'Huling 30 Araw',
+    'preset.all': 'Lahat',
+    'export.csv': '📄 I-download bilang CSV',
+    'export.json': '💾 JSON Backup (may larawan)',
+    'export.htmlReport': '📋 HTML Report (may larawan, mai-print)',
+    'import.title': '📥 Mag-import ng Data',
+    'import.desc': 'I-restore mula sa JSON backup file.',
+    'import.selectFile': 'Pumili ng JSON file',
+    'stats.title': 'ℹ️ Impormasyon ng Data',
+    'stats.total': 'Kabuuang talaan',
+    'stats.uniqueTags': 'Iba\'t ibang tag',
+    'stats.rooms': 'Bilang ng kuwarto',
+    'stats.latest': 'Huling talaan',
+    'stats.records': '',
+    'stats.heads': '',
+    'stats.roomsUnit': '',
+    'scanner.title': '📷 Pag-scan ng Barcode',
+    'scanner.hint': 'Iposisyon ang barcode sa loob ng frame',
+    'scanner.cancel': 'Kanselahin',
+    'scanner.manual': 'Manu-mano',
+    'scanner.confirm': '✓ Kumpirmahin',
+    'scanner.torch.on': 'Ilaw ON',
+    'scanner.torch.off': 'Ilaw OFF',
+    'scanner.removeImage': 'Tanggalin ang larawan',
+    'scanner.notSupported': 'Hindi sinusuportahan ng browser na ito ang pag-scan. Gamitin ang manual input.',
+    'scanner.scanned': 'Na-scan: ',
+    'image.close': 'Isara',
+    'confirm.title': 'Kumpirma',
+    'confirm.ok': 'Burahin',
+    'confirm.cancel': 'Kanselahin',
+    'confirm.deleteOne': 'Burahin ang talaang ito?',
+    'confirm.deleteOneDesc': 'Hindi na maibabalik ang aksyong ito.',
+    'confirm.deleteAll': 'Burahin lahat ng {n} talaan?',
+    'confirm.deleteAllDesc': 'Hindi na maibabalik. Mabubura lahat.',
+    'confirm.delete': 'Burahin?',
+    'confirm.deleteListItem': 'Tanggalin ang "{name}" mula sa {list}.',
+    'confirm.reset': 'I-reset sa default?',
+    'confirm.resetDesc': 'Mababago lahat ng listahan sa default na halaga.',
+    'confirm.import': 'I-import ang {n} talaan?',
+    'confirm.importDesc': 'Pagsasamahin sa kasalukuyang talaan (mapapalitan ang duplicate IDs).',
+    'toast.saved': 'Naka-save ang talaan ✓',
+    'toast.required': 'Pakipuno ang kinakailangang impormasyon (petsa, oras, kuwarto, tag, sintomas)',
+    'toast.deleted': 'Nabura',
+    'toast.deletedAll': 'Nabura lahat',
+    'toast.noRecordsDelete': 'Walang talaan para burahin',
+    'toast.editLoaded': 'Naka-load para i-edit',
+    'toast.added': 'Naidagdag',
+    'toast.duplicate': 'Naidagdag na',
+    'toast.duplicateList': 'Nakarehistro na',
+    'toast.enterName': 'Pakilagay ang pangalan',
+    'toast.listReset': 'Na-reset ang listahan',
+    'toast.cameraDenied': 'Kailangan ng pahintulot sa camera. I-enable ito sa settings.',
+    'toast.cameraError': 'Hindi makapagsimula ng camera',
+    'toast.scanned': 'Na-scan na tag: ',
+    'toast.scannedImage': ' (naka-save ang larawan)',
+    'toast.dateUpdated': ' (na-update ang petsa/oras)',
+    'toast.eartagSet': 'Naitakda ang tag (na-update ang petsa/oras)',
+    'toast.imageRemoved': 'Natanggal ang larawan',
+    'toast.torchError': 'Hindi maipalit ang ilaw',
+    'toast.exportEmpty': 'Walang talaan para i-export',
+    'toast.exportNoRange': 'Walang talaan sa napiling saklaw',
+    'toast.csvDone': 'Na-download ang CSV ({n} talaan)',
+    'toast.jsonDone': 'Na-download ang JSON backup ({n} talaan)',
+    'toast.htmlDone': 'Nai-generate ang HTML report ({n} talaan, {m} larawan)',
+    'toast.imported': 'Na-import ang {n} talaan',
+    'toast.importError': 'Hindi mabasa ang file',
+    'toast.langChanged': 'Napalitan ang wika',
+    'manual.prompt': 'Ilagay ang ear tag number:',
+    'rangeText.all': 'Lahat ng panahon',
+    'rangeText.from': 'simula',
+    'rangeText.to': 'huli',
+    'export.preview': 'Saklaw: {range} — {n} / {total} talaan',
+    'export.rangeWarn': '⚠ Mas huli ang simula kaysa sa katapusan',
+    'list.rooms': 'listahan ng kuwarto',
+    'list.handlers': 'listahan ng tagapag-alaga',
+    'list.symptoms': 'listahan ng sintomas',
+    'list.medicines': 'listahan ng gamot',
+    'report.title': 'Talaan ng Paggamot sa Hayupan',
+    'report.meta': 'Saklaw: {range} / {n} talaan / Petsa: {when}',
+    'report.print': '🖨 I-print / I-save bilang PDF',
+    'report.footer': 'Talaan ng Hayupan — {when}',
+    'report.unset': '—',
+    'unset': '-'
+  }
+};
+
+function t(key, params) {
+  let s = (I18N[currentLang] && I18N[currentLang][key]) || I18N.ja[key] || key;
+  if (params) {
+    Object.keys(params).forEach(k => {
+      s = s.replace(new RegExp('\\{' + k + '\\}', 'g'), params[k]);
+    });
+  }
+  return s;
+}
+
+function applyI18n() {
+  document.documentElement.lang = currentLang;
+  document.title = t('app.title');
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+  });
+}
+
+function loadLanguage() {
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved && I18N[saved]) currentLang = saved;
+    else if (navigator.language) {
+      const code = navigator.language.toLowerCase();
+      if (code.startsWith('en')) currentLang = 'en';
+      else if (code.startsWith('fil') || code.startsWith('tl')) currentLang = 'fil';
+    }
+  } catch(e) {}
+  const sel = document.getElementById('lang-select');
+  if (sel) sel.value = currentLang;
+}
+
+function changeLanguage(lang) {
+  if (!I18N[lang]) return;
+  currentLang = lang;
+  try { localStorage.setItem(LANG_KEY, lang); } catch(e) {}
+  applyI18n();
+  // 動的に生成される部分を再描画
+  renderAllSelects();
+  renderAllListEditors();
+  renderSymptomChips();
+  renderList();
+  updateStats();
+  updateExportPreview();
+  updateBadge();
+  // 薬品行のラベルや「削除」ボタンも再描画
+  renumberMedicineRows();
+  showToast(t('toast.langChanged'), 'success');
+}
+
+// ============================================================
+// STATE
+// ============================================================
+const STORAGE_KEY = 'livestock_records_v1';
+const LISTS_KEY   = 'livestock_lists_v1';
+
+const DEFAULT_LISTS_BY_LANG = {
+  ja: {
+    rooms: [],
+    handlers: [],
+    symptoms: ['食欲不振','下痢','便秘','咳','鼻汁','呼吸困難','跛行','起立困難','流涎','皮膚炎','乳房炎','外傷','眼脂・結膜炎','元気消失'],
+    medicines: ['アモキシシリン','ペニシリン','オキシテトラサイクリン','ストレプトマイシン','セファゾリン','エンロフロキサシン','ビタミンB1','ビタミンB群','ビタミンC','解熱剤','消炎剤','輸液','駆虫剤','整腸剤']
+  },
+  en: {
+    rooms: [],
+    handlers: [],
+    symptoms: ['Loss of appetite','Diarrhea','Constipation','Cough','Nasal discharge','Difficulty breathing','Lameness','Recumbency','Drooling','Skin inflammation','Mastitis','Wound','Eye discharge / conjunctivitis','Lethargy'],
+    medicines: ['Amoxicillin','Penicillin','Oxytetracycline','Streptomycin','Cefazolin','Enrofloxacin','Vitamin B1','Vitamin B complex','Vitamin C','Antipyretic','Anti-inflammatory','IV fluids','Anthelmintic','Gastrointestinal regulator']
+  },
+  fil: {
+    rooms: [],
+    handlers: [],
+    symptoms: ['Walang gana sa pagkain','Pagtatae','Hindi makatae','Ubo','Sipon','Hirap sa paghinga','Pilay','Hindi makatayo','Laway na lumalabas','Pamamaga ng balat','Mastitis','Sugat','Pamumula ng mata','Tamlay'],
+    medicines: ['Amoxicillin','Penicillin','Oxytetracycline','Streptomycin','Cefazolin','Enrofloxacin','Vitamin B1','Vitamin B complex','Vitamin C','Pampababa ng lagnat','Anti-impeksyon','IV fluids','Pampurga','Pamparelaks ng bituka']
+  }
+};
+
+function getDefaultLists() {
+  return DEFAULT_LISTS_BY_LANG[currentLang] || DEFAULT_LISTS_BY_LANG.ja;
+}
+
+let records = [];
+let lists   = { rooms: [], handlers: [], symptoms: [], medicines: [] };
+let scannedCode = null;
+let scanStream = null;
+let scanTrack = null;
+let scanDetecting = false;
+let torchOn = false;
+let confirmCallback = null;
+let lastScannedImage = null;  // データURL（JPEG, base64）
+let currentSymptoms = [];     // フォーム編集中の症状リスト
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  loadLanguage();
+  applyI18n();
+  loadRecords();
+  loadLists();
+  renderAllSelects();
+  renderAllListEditors();
+  resetMedicineRows();
+  renderSymptomChips();
+  setDefaultDateTime();
+  applyHandlerAutoselect();
+  updateBadge();
+  updateStats();
+});
+
+function setDefaultDateTime() {
+  const now = new Date();
+  document.getElementById('f-date').value = now.toISOString().split('T')[0];
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('f-time').value = `${hh}:${mm}`;
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(tab) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  const idx = {form:0, list:1, settings:2, export:3}[tab];
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  if (tab === 'list') renderList();
+  if (tab === 'settings') renderAllListEditors();
+  if (tab === 'export') { updateStats(); updateExportPreview(); }
+}
+
+// ============================================================
+// STORAGE
+// ============================================================
+function loadRecords() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    records = raw ? JSON.parse(raw) : [];
+  } catch(e) { records = []; }
+}
+
+function saveRecords() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  updateBadge();
+}
+
+function updateBadge() {
+  document.getElementById('record-badge').textContent = t('list.count', { n: records.length });
+}
+
+// ============================================================
+// LISTS (Handlers / Symptoms / Medicines)
+// ============================================================
+function loadLists() {
+  try {
+    const raw = localStorage.getItem(LISTS_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    lists = {
+      rooms:     Array.isArray(parsed?.rooms)     ? parsed.rooms     : [...getDefaultLists().rooms],
+      handlers:  Array.isArray(parsed?.handlers)  ? parsed.handlers  : [...getDefaultLists().handlers],
+      symptoms:  Array.isArray(parsed?.symptoms)  ? parsed.symptoms  : [...getDefaultLists().symptoms],
+      medicines: Array.isArray(parsed?.medicines) ? parsed.medicines : [...getDefaultLists().medicines]
+    };
+  } catch(e) {
+    lists = {
+      rooms:     [...getDefaultLists().rooms],
+      handlers:  [...getDefaultLists().handlers],
+      symptoms:  [...getDefaultLists().symptoms],
+      medicines: [...getDefaultLists().medicines]
+    };
+  }
+}
+
+function saveLists() {
+  localStorage.setItem(LISTS_KEY, JSON.stringify(lists));
+}
+
+function addListItem(key, inputId) {
+  const input = document.getElementById(inputId);
+  const val = (input.value || '').trim();
+  if (!val) { showToast(t('toast.enterName'), 'error'); return; }
+  if (lists[key].includes(val)) { showToast(t('toast.duplicateList'), 'error'); return; }
+  lists[key].push(val);
+  saveLists();
+  input.value = '';
+  renderAllListEditors();
+  renderAllSelects();
+  applyHandlerAutoselect();
+  showToast(t('toast.added'), 'success');
+}
+
+function removeListItem(key, value) {
+  showConfirm(t('confirm.delete'), t('confirm.deleteListItem', { name: value, list: t('list.' + key) }), () => {
+    lists[key] = lists[key].filter(v => v !== value);
+    saveLists();
+    renderAllListEditors();
+    renderAllSelects();
+    applyHandlerAutoselect();
+    showToast(t('toast.deleted'), 'success');
+  });
+}
+
+function listLabel(key) {
+  return t('list.' + key) || key;
+}
+
+function resetLists() {
+  showConfirm(t('confirm.reset'), t('confirm.resetDesc'), () => {
+    lists = {
+      rooms:     [...getDefaultLists().rooms],
+      handlers:  [...getDefaultLists().handlers],
+      symptoms:  [...getDefaultLists().symptoms],
+      medicines: [...getDefaultLists().medicines]
+    };
+    saveLists();
+    renderAllListEditors();
+    renderAllSelects();
+    applyHandlerAutoselect();
+    showToast(t('toast.listReset'), 'success');
+  });
+}
+
+function renderAllListEditors() {
+  renderListEditor('rooms-editor',     'rooms');
+  renderListEditor('handlers-editor',  'handlers');
+  renderListEditor('symptoms-editor',  'symptoms');
+  renderListEditor('medicines-editor', 'medicines');
+}
+
+function renderListEditor(elementId, key) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  if (lists[key].length === 0) {
+    el.innerHTML = `<div class="empty">${esc(t('settings.empty'))}</div>`;
+    return;
+  }
+  el.innerHTML = lists[key].map((v, i) => `
+    <div class="list-row">
+      <span class="name">${esc(v)}</span>
+      <button data-key="${key}" data-idx="${i}">${esc(t('settings.delete'))}</button>
+    </div>
+  `).join('');
+  el.querySelectorAll('button[data-key]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.getAttribute('data-key');
+      const idx = parseInt(btn.getAttribute('data-idx'), 10);
+      const val = lists[k][idx];
+      if (val !== undefined) removeListItem(k, val);
+    });
+  });
+}
+
+function renderAllSelects() {
+  renderSelectOptions('f-room',     lists.rooms,     true);
+  renderSelectOptions('f-handler',  lists.handlers,  true);
+  renderSelectOptions('f-symptoms', lists.symptoms,  true, t('form.symptoms.add'));
+  // 既存の薬品行もselect再生成
+  document.querySelectorAll('#medicines-container .med-name').forEach(sel => {
+    const cur = sel.value;
+    rebuildMedicineSelect(sel, cur);
+  });
+}
+
+function renderSelectOptions(selectId, items, includeOther, placeholder) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const current = sel.value;
+  const ph = placeholder || t('form.selectPlaceholder');
+  const otherOption = includeOther ? `<option value="${esc(t('form.other'))}">${esc(t('form.otherOption'))}</option>` : '';
+  sel.innerHTML = `<option value="">${esc(ph)}</option>`
+    + items.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('')
+    + otherOption;
+  if (current && [...sel.options].some(o => o.value === current)) {
+    sel.value = current;
+  }
+}
+
+function applyHandlerAutoselect() {
+  const sel = document.getElementById('f-handler');
+  if (!sel) return;
+  if (lists.handlers.length === 1 && !sel.value) {
+    sel.value = lists.handlers[0];
+    document.getElementById('f-handler-other').style.display = 'none';
+  }
+}
+
+// ============================================================
+// MEDICINE ROWS (複数行)
+// ============================================================
+function rebuildMedicineSelect(sel, currentValue) {
+  sel.innerHTML = `<option value="">${esc(t('form.medicine.select'))}</option>`
+    + lists.medicines.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('')
+    + `<option value="${esc(t('form.other'))}">${esc(t('form.otherOption'))}</option>`;
+  if (currentValue && [...sel.options].some(o => o.value === currentValue)) {
+    sel.value = currentValue;
+  } else if (currentValue) {
+    sel.value = t('form.other');
+  }
+}
+
+function addMedicineRow(name = '', dosage = '') {
+  const container = document.getElementById('medicines-container');
+  const row = document.createElement('div');
+  row.className = 'medicine-row';
+  row.innerHTML = `
+    <div class="med-label">
+      <span class="med-label-text">${esc(t('form.medicine.row'))}</span>
+      <button type="button" class="remove-med" onclick="removeMedicineRow(this)">${esc(t('form.delete'))}</button>
+    </div>
+    <div class="field" style="margin-bottom:8px;">
+      <select class="med-name" onchange="toggleMedOther(this)"></select>
+      <input type="text" class="med-name-other" placeholder="${esc(t('form.medicine.placeholder'))}" style="display:none;margin-top:6px;">
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label style="font-size:0.75rem;">${esc(t('form.dosage'))}</label>
+      <input type="text" class="med-dosage" placeholder="${esc(t('form.dosage.placeholder'))}">
+    </div>
+  `;
+  container.appendChild(row);
+  const sel = row.querySelector('.med-name');
+  rebuildMedicineSelect(sel, '');
+  if (name) {
+    if (lists.medicines.includes(name)) {
+      sel.value = name;
+    } else {
+      sel.value = t('form.other');
+      const other = row.querySelector('.med-name-other');
+      other.style.display = 'block';
+      other.value = name;
+    }
+  }
+  if (dosage) row.querySelector('.med-dosage').value = dosage;
+  renumberMedicineRows();
+}
+
+function removeMedicineRow(btn) {
+  const row = btn.closest('.medicine-row');
+  if (!row) return;
+  row.remove();
+  renumberMedicineRows();
+  if (document.getElementById('medicines-container').children.length === 0) {
+    addMedicineRow();
+  }
+}
+
+function renumberMedicineRows() {
+  const rows = document.querySelectorAll('#medicines-container .medicine-row');
+  rows.forEach((row, i) => {
+    row.querySelector('.med-label-text').textContent = `${t('form.medicine.row')} ${i + 1}`;
+    const removeBtn = row.querySelector('.remove-med');
+    if (removeBtn) {
+      removeBtn.textContent = t('form.delete');
+      removeBtn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+    }
+  });
+}
+
+function toggleMedOther(sel) {
+  const row = sel.closest('.medicine-row');
+  const other = row.querySelector('.med-name-other');
+  other.style.display = isOtherValue(sel.value) ? 'block' : 'none';
+  if (other.style.display === 'none') other.value = '';
+}
+
+function resetMedicineRows() {
+  document.getElementById('medicines-container').innerHTML = '';
+  addMedicineRow();
+}
+
+function collectMedicines() {
+  const rows = document.querySelectorAll('#medicines-container .medicine-row');
+  const result = [];
+  rows.forEach(row => {
+    const sel = row.querySelector('.med-name').value;
+    const other = row.querySelector('.med-name-other').value.trim();
+    const name = isOtherValue(sel) ? other : sel;
+    const dosage = row.querySelector('.med-dosage').value.trim();
+    if (name) result.push({ name, dosage });
+  });
+  return result;
+}
+
+// ============================================================
+// FORM
+// ============================================================
+function isOtherValue(val) {
+  // 各言語の「その他」と一致するか判定（バックワード互換のため日本語も常に許容）
+  if (!val) return false;
+  if (val === 'その他') return true;
+  return val === t('form.other');
+}
+
+function getSelectOrOther(selectId, otherId) {
+  const sel = document.getElementById(selectId).value;
+  if (isOtherValue(sel)) return document.getElementById(otherId).value.trim();
+  return sel.trim();
+}
+
+// ============================================================
+// SYMPTOMS (multi-select via chips)
+// ============================================================
+function renderSymptomChips() {
+  const wrap = document.getElementById('symptoms-chips');
+  if (!wrap) return;
+  if (currentSymptoms.length === 0) {
+    wrap.innerHTML = `<span class="chips-empty">${esc(t('form.symptoms.add'))}</span>`;
+    return;
+  }
+  wrap.innerHTML = currentSymptoms.map((s, i) => `
+    <span class="chip">
+      ${esc(s)}
+      <button type="button" class="x" data-idx="${i}" aria-label="${esc(t('form.delete'))}">×</button>
+    </span>
+  `).join('');
+  wrap.querySelectorAll('button.x').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.getAttribute('data-idx'), 10);
+      currentSymptoms.splice(idx, 1);
+      renderSymptomChips();
+    });
+  });
+}
+
+function addSymptom(value) {
+  const v = (value || '').trim();
+  if (!v) return false;
+  if (currentSymptoms.includes(v)) {
+    showToast(t('toast.duplicate'), 'error');
+    return false;
+  }
+  currentSymptoms.push(v);
+  renderSymptomChips();
+  return true;
+}
+
+function onSymptomSelectChange() {
+  const sel   = document.getElementById('f-symptoms');
+  const other = document.getElementById('f-symptoms-other');
+  const addBtn = document.getElementById('f-symptoms-add-btn');
+  const val = sel.value;
+  if (isOtherValue(val)) {
+    other.style.display = 'block';
+    addBtn.style.display = 'block';
+    other.focus();
+  } else if (val) {
+    addSymptom(val);
+    sel.value = '';
+    other.style.display = 'none';
+    addBtn.style.display = 'none';
+    other.value = '';
+  }
+}
+
+function addSymptomOther() {
+  const other = document.getElementById('f-symptoms-other');
+  if (addSymptom(other.value)) {
+    other.value = '';
+    other.style.display = 'none';
+    document.getElementById('f-symptoms-add-btn').style.display = 'none';
+    document.getElementById('f-symptoms').value = '';
+  }
+}
+
+function toggleOther(selectId, otherId) {
+  const other = document.getElementById(otherId);
+  other.style.display = isOtherValue(document.getElementById(selectId).value) ? 'block' : 'none';
+  if (other.style.display === 'none') other.value = '';
+}
+
+function saveRecord() {
+  const date        = document.getElementById('f-date').value.trim();
+  const time        = document.getElementById('f-time').value.trim();
+  const room        = getSelectOrOther('f-room','f-room-other');
+  const handler     = getSelectOrOther('f-handler','f-handler-other');
+  const eartag      = document.getElementById('f-eartag').value.trim();
+  // フォームに未追加の自由入力が残っていれば追加してから収集
+  if (document.getElementById('f-symptoms-other').style.display !== 'none') {
+    const pending = document.getElementById('f-symptoms-other').value.trim();
+    if (pending) addSymptom(pending);
+  }
+  const symptoms = currentSymptoms.slice();
+  const temperature = document.getElementById('f-temperature').value.trim();
+  const medicines   = collectMedicines();
+  const notes       = document.getElementById('f-notes').value.trim();
+
+  if (!date || !time || !room || !eartag || symptoms.length === 0) {
+    showToast(t('toast.required'), 'error');
+    return;
+  }
+
+  const record = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    date, time, room, handler, eartag, symptoms, temperature, medicines, notes,
+    image: lastScannedImage || null,
+    createdAt: new Date().toISOString()
+  };
+
+  records.unshift(record);
+  saveRecords();
+  showToast(t('toast.saved'), 'success');
+  clearForm();
+  setDefaultDateTime();
+}
+
+function clearForm() {
+  ['f-room','f-room-other','f-eartag','f-symptoms','f-symptoms-other','f-temperature','f-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-room-other').style.display = 'none';
+  document.getElementById('f-symptoms-other').style.display = 'none';
+  document.getElementById('f-symptoms-add-btn').style.display = 'none';
+  currentSymptoms = [];
+  renderSymptomChips();
+  lastScannedImage = null;
+  showScanPreviewInForm(null);
+  // 担当者は1人だけのときは保持、それ以外はクリア
+  if (lists.handlers.length !== 1) {
+    document.getElementById('f-handler').value = '';
+    document.getElementById('f-handler-other').value = '';
+    document.getElementById('f-handler-other').style.display = 'none';
+  }
+  resetMedicineRows();
+  setDefaultDateTime();
+  applyHandlerAutoselect();
+}
+
+// ============================================================
+// RECORDS LIST
+// ============================================================
+function recordMedicineSummary(r) {
+  // 新形式: medicines配列, 旧形式: medicine + dosage
+  if (Array.isArray(r.medicines) && r.medicines.length > 0) {
+    return r.medicines.map(m => m.dosage ? `${m.name} (${m.dosage})` : m.name).join(' / ');
+  }
+  if (r.medicine) {
+    return r.dosage ? `${r.medicine} (${r.dosage})` : r.medicine;
+  }
+  return '';
+}
+
+function getSymptomsArray(r) {
+  if (Array.isArray(r.symptoms)) return r.symptoms;
+  if (typeof r.symptoms === 'string' && r.symptoms.trim()) {
+    return r.symptoms.split(/[、,／/]/).map(s => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function symptomsAsText(r) {
+  return getSymptomsArray(r).join(' / ');
+}
+
+function renderList() {
+  const query = (document.getElementById('search-input').value || '').toLowerCase();
+  const filtered = records.filter(r => {
+    if (!query) return true;
+    const medText = recordMedicineSummary(r).toLowerCase();
+    const symText = symptomsAsText(r).toLowerCase();
+    return (r.eartag||'').toLowerCase().includes(query)
+      || symText.includes(query)
+      || medText.includes(query)
+      || (r.room||'').toLowerCase().includes(query)
+      || (r.handler||'').toLowerCase().includes(query);
+  });
+
+  document.getElementById('list-count').textContent = t('list.countOf', { n: filtered.length, total: records.length });
+  const container = document.getElementById('records-container');
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📋</div>
+        <p>${esc(records.length === 0 ? t('list.empty') : t('list.emptySearch'))}</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(r => {
+    const medSummary = recordMedicineSummary(r);
+    return `
+    <div class="record-item" id="rec-${r.id}">
+      <div class="record-header">
+        <span class="ear-tag">🏷️ ${esc(r.eartag)}</span>
+        <span class="record-date">${esc(r.date)} ${esc(r.time)}</span>
+      </div>
+      ${r.image ? `<div class="record-image"><img src="${esc(r.image)}" alt="" onclick="openImageModal('${r.id}')"></div>` : ''}
+      <div class="record-body">
+        <dl>
+          <dt>${esc(t('rec.room'))}</dt><dd>${esc(r.room)}</dd>
+          ${r.handler ? `<dt>${esc(t('rec.handler'))}</dt><dd>${esc(r.handler)}</dd>` : ''}
+          <dt>${esc(t('rec.symptoms'))}</dt><dd>${esc(symptomsAsText(r))}</dd>
+          ${r.temperature ? `<dt>${esc(t('rec.temperature'))}</dt><dd>${esc(r.temperature)} °C</dd>` : ''}
+          ${medSummary ? `<dt>${esc(t('rec.medicine'))}</dt><dd>${esc(medSummary)}</dd>` : ''}
+          ${r.notes    ? `<dt>${esc(t('rec.notes'))}</dt><dd>${esc(r.notes)}</dd>` : ''}
+        </dl>
+      </div>
+      <div class="record-footer">
+        <button class="btn btn-secondary btn-sm" onclick="editRecord('${r.id}')">${esc(t('list.edit'))}</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDeleteOne('${r.id}')">${esc(t('list.delete'))}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setSelectOrOther(selectId, otherId, value) {
+  const sel = document.getElementById(selectId);
+  const other = document.getElementById(otherId);
+  const options = [...sel.options].map(o => o.value);
+  if (value && options.includes(value)) {
+    sel.value = value;
+    other.style.display = 'none';
+    other.value = '';
+  } else if (value) {
+    sel.value = t('form.other');
+    other.style.display = 'block';
+    other.value = value;
+  } else {
+    sel.value = '';
+    other.style.display = 'none';
+    other.value = '';
+  }
+}
+
+function editRecord(id) {
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('f-date').value        = r.date;
+  document.getElementById('f-time').value        = r.time;
+  setSelectOrOther('f-room','f-room-other', r.room);
+  setSelectOrOther('f-handler','f-handler-other', r.handler || '');
+  document.getElementById('f-eartag').value      = r.eartag;
+  // 症状を配列としてロード（旧形式の文字列にも対応）
+  if (Array.isArray(r.symptoms)) {
+    currentSymptoms = r.symptoms.slice();
+  } else if (typeof r.symptoms === 'string' && r.symptoms.trim()) {
+    currentSymptoms = r.symptoms.split(/[、,／/]/).map(s => s.trim()).filter(Boolean);
+  } else {
+    currentSymptoms = [];
+  }
+  renderSymptomChips();
+  document.getElementById('f-symptoms').value = '';
+  document.getElementById('f-symptoms-other').value = '';
+  document.getElementById('f-symptoms-other').style.display = 'none';
+  document.getElementById('f-symptoms-add-btn').style.display = 'none';
+
+  document.getElementById('f-temperature').value = r.temperature || '';
+  document.getElementById('f-notes').value       = r.notes    || '';
+
+  // 画像を復元
+  lastScannedImage = r.image || null;
+  showScanPreviewInForm(lastScannedImage);
+
+  // 薬品行を再構築
+  document.getElementById('medicines-container').innerHTML = '';
+  let meds = Array.isArray(r.medicines) ? r.medicines.slice() : [];
+  if (meds.length === 0 && r.medicine) {
+    meds.push({ name: r.medicine, dosage: r.dosage || '' });
+  }
+  if (meds.length === 0) {
+    addMedicineRow();
+  } else {
+    meds.forEach(m => addMedicineRow(m.name || '', m.dosage || ''));
+  }
+
+  // Remove old record (will be re-saved)
+  records = records.filter(x => x.id !== id);
+  saveRecords();
+  switchTab('form');
+  showToast(t('toast.editLoaded'), 'success');
+}
+
+// ============================================================
+// DELETE
+// ============================================================
+function confirmDeleteOne(id) {
+  showConfirm(t('confirm.deleteOne'), t('confirm.deleteOneDesc'), () => {
+    records = records.filter(r => r.id !== id);
+    saveRecords();
+    renderList();
+    showToast(t('toast.deleted'), 'success');
+  });
+}
+
+function confirmDeleteAll() {
+  if (records.length === 0) { showToast(t('toast.noRecordsDelete'), 'error'); return; }
+  showConfirm(t('confirm.deleteAll', { n: records.length }), t('confirm.deleteAllDesc'), () => {
+    records = [];
+    saveRecords();
+    renderList();
+    showToast(t('toast.deletedAll'), 'success');
+  });
+}
+
+// ============================================================
+// CONFIRM DIALOG
+// ============================================================
+function showConfirm(title, msg, cb) {
+  document.getElementById('confirm-title').textContent   = title;
+  document.getElementById('confirm-message').textContent = msg;
+  confirmCallback = cb;
+  document.getElementById('confirm-modal').classList.add('open');
+  document.getElementById('confirm-ok').onclick = () => {
+    closeConfirm();
+    if (confirmCallback) confirmCallback();
+  };
+}
+function closeConfirm() {
+  document.getElementById('confirm-modal').classList.remove('open');
+}
+
+// ============================================================
+// EXPORT / IMPORT
+// ============================================================
+// ============================================================
+// EXPORT DATE RANGE
+// ============================================================
+function toDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function setExportPreset(preset) {
+  const from = document.getElementById('export-from');
+  const to   = document.getElementById('export-to');
+  const now  = new Date();
+  if (preset === 'all') {
+    from.value = ''; to.value = '';
+  } else if (preset === 'today') {
+    const t = toDateStr(now);
+    from.value = t; to.value = t;
+  } else if (preset === 'week') {
+    // 今週（月曜開始）
+    const day = now.getDay(); // 0=日, 1=月
+    const diff = (day + 6) % 7; // 月曜までの日数
+    const monday = new Date(now); monday.setDate(now.getDate() - diff);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+    from.value = toDateStr(monday); to.value = toDateStr(sunday);
+  } else if (preset === 'month') {
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    from.value = toDateStr(first); to.value = toDateStr(last);
+  } else if (preset === '30days') {
+    const start = new Date(now); start.setDate(now.getDate() - 29);
+    from.value = toDateStr(start); to.value = toDateStr(now);
+  }
+  updateExportPreview();
+}
+
+function getExportFiltered() {
+  const from = (document.getElementById('export-from')?.value || '').trim();
+  const to   = (document.getElementById('export-to')?.value   || '').trim();
+  return records.filter(r => {
+    const d = r.date || '';
+    if (from && d < from) return false;
+    if (to   && d > to)   return false;
+    return true;
+  });
+}
+
+function exportRangeLabel() {
+  const from = (document.getElementById('export-from')?.value || '').trim();
+  const to   = (document.getElementById('export-to')?.value   || '').trim();
+  if (!from && !to) return 'all';
+  return `${from || 'start'}_${to || 'end'}`;
+}
+
+function updateExportPreview() {
+  const el = document.getElementById('export-preview');
+  if (!el) return;
+  const from = (document.getElementById('export-from')?.value || '').trim();
+  const to   = (document.getElementById('export-to')?.value   || '').trim();
+  if (from && to && from > to) {
+    el.innerHTML = `<span style="color:var(--danger);">${esc(t('export.rangeWarn'))}</span>`;
+    return;
+  }
+  const filtered = getExportFiltered();
+  const rangeText = (!from && !to)
+    ? t('rangeText.all')
+    : `${from || t('rangeText.from')} 〜 ${to || t('rangeText.to')}`;
+  el.innerHTML = t('export.preview', {
+    range: `<strong>${esc(rangeText)}</strong>`,
+    n: `<strong>${filtered.length}</strong>`,
+    total: `<strong>${records.length}</strong>`
+  });
+}
+
+function exportCSV() {
+  if (records.length === 0) { showToast(t('toast.exportEmpty'), 'error'); return; }
+  const filtered = getExportFiltered();
+  if (filtered.length === 0) { showToast(t('toast.exportNoRange'), 'error'); return; }
+
+  // 最大薬品数を計算
+  const maxMeds = filtered.reduce((m, r) => {
+    const n = Array.isArray(r.medicines) ? r.medicines.length : (r.medicine ? 1 : 0);
+    return Math.max(m, n);
+  }, 1);
+
+  const medHeaders = [];
+  for (let i = 1; i <= maxMeds; i++) {
+    medHeaders.push(`使用薬品${i}`, `使用量${i}`);
+  }
+  const headers = ['日付','時間','部屋番号','担当者','耳標番号','症状','体温(°C)', ...medHeaders, '備考','画像','登録日時'];
+
+  const rows = filtered.map(r => {
+    const meds = Array.isArray(r.medicines) && r.medicines.length > 0
+      ? r.medicines
+      : (r.medicine ? [{ name: r.medicine, dosage: r.dosage || '' }] : []);
+    const medCells = [];
+    for (let i = 0; i < maxMeds; i++) {
+      medCells.push(meds[i]?.name || '', meds[i]?.dosage || '');
+    }
+    return [
+      r.date, r.time, r.room, r.handler||'', r.eartag, symptomsAsText(r),
+      r.temperature||'',
+      ...medCells,
+      r.notes||'',
+      r.image ? 'あり' : '',
+      r.createdAt||''
+    ];
+  });
+
+  // BOM付きUTF-8でExcelでも文字化けしない
+  const csvContent = '﻿' + [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(','))
+    .join('\r\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const rangeTag = exportRangeLabel().replace(/-/g,'');
+  a.download = `livestock_record_${dateStr}_${rangeTag}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(t('toast.csvDone', { n: filtered.length }), 'success');
+}
+
+function exportJSON() {
+  if (records.length === 0) { showToast(t('toast.exportEmpty'), 'error'); return; }
+  const filtered = getExportFiltered();
+  if (filtered.length === 0) { showToast(t('toast.exportNoRange'), 'error'); return; }
+  const from = (document.getElementById('export-from')?.value || '').trim() || null;
+  const to   = (document.getElementById('export-to')?.value   || '').trim() || null;
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    range: { from, to },
+    records: filtered
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const rangeTag = exportRangeLabel().replace(/-/g,'');
+  a.download = `livestock_backup_${dateStr}_${rangeTag}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(t('toast.jsonDone', { n: filtered.length }), 'success');
+}
+
+function exportHTMLReport() {
+  if (records.length === 0) { showToast(t('toast.exportEmpty'), 'error'); return; }
+  const filtered = getExportFiltered();
+  if (filtered.length === 0) { showToast(t('toast.exportNoRange'), 'error'); return; }
+
+  const from = (document.getElementById('export-from')?.value || '').trim();
+  const to   = (document.getElementById('export-to')?.value   || '').trim();
+  const rangeText = (!from && !to) ? t('rangeText.all') : `${from || t('rangeText.from')} 〜 ${to || t('rangeText.to')}`;
+  const localeMap = { ja: 'ja-JP', en: 'en-US', fil: 'fil-PH' };
+  const exportedAt = new Date().toLocaleString(localeMap[currentLang] || 'ja-JP');
+
+  const recordsHtml = filtered.map(r => {
+    const meds = Array.isArray(r.medicines) && r.medicines.length > 0
+      ? r.medicines
+      : (r.medicine ? [{ name: r.medicine, dosage: r.dosage || '' }] : []);
+    const medText = meds.length > 0
+      ? meds.map(m => m.dosage ? `${esc(m.name)} <span class="d">(${esc(m.dosage)})</span>` : esc(m.name)).join('<br>')
+      : '<span class="muted">—</span>';
+    return `
+    <article class="rec">
+      <header>
+        <div class="eartag">🏷️ ${esc(r.eartag)}</div>
+        <div class="when">${esc(r.date)} ${esc(r.time)}</div>
+      </header>
+      ${r.image ? `<div class="img"><img src="${esc(r.image)}" alt=""></div>` : ''}
+      <dl>
+        <dt>${esc(t('rec.room'))}</dt><dd>${esc(r.room)}</dd>
+        ${r.handler ? `<dt>${esc(t('rec.handler'))}</dt><dd>${esc(r.handler)}</dd>` : ''}
+        <dt>${esc(t('rec.symptoms'))}</dt><dd>${getSymptomsArray(r).map(s => `<span class="sym">${esc(s)}</span>`).join(' ')}</dd>
+        ${r.temperature ? `<dt>${esc(t('rec.temperature'))}</dt><dd>${esc(r.temperature)} °C</dd>` : ''}
+        <dt>${esc(t('rec.medicine'))}</dt><dd>${medText}</dd>
+        ${r.notes ? `<dt>${esc(t('rec.notes'))}</dt><dd>${esc(r.notes)}</dd>` : ''}
+      </dl>
+    </article>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="${currentLang}"><head><meta charset="UTF-8">
+<title>${esc(t('report.title'))} ${esc(exportedAt)}</title>
+<style>
+  :root { --primary:#0066cc; --ink:#1d1d1f; --parchment:#f5f5f7; --hairline:#e0e0e0; --muted:#7a7a7a; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family: "SF Pro Text", system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    color: var(--ink);
+    background: var(--parchment);
+    font-size: 14px;
+    line-height: 1.47;
+    letter-spacing: -0.224px;
+    padding: 32px 24px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 {
+    font-family: "SF Pro Display", system-ui, sans-serif;
+    font-size: 28px; font-weight: 600; letter-spacing: -0.28px;
+    margin-bottom: 4px; color: var(--ink);
+  }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .rec {
+    background: #fff;
+    border: 1px solid var(--hairline);
+    border-radius: 18px;
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .rec header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 8px; margin-bottom: 12px;
+  }
+  .eartag { font-weight: 600; font-size: 17px; letter-spacing: -0.374px; }
+  .when { color: var(--muted); font-size: 12px; }
+  .img { margin: 8px 0 14px; }
+  .img img {
+    max-width: 100%; max-height: 280px;
+    border-radius: 11px; display: block;
+    object-fit: contain;
+  }
+  dl { display: grid; grid-template-columns: 100px 1fr; gap: 6px 16px; }
+  dt { color: var(--muted); font-weight: 400; }
+  dd { color: var(--ink); }
+  dd .d { color: var(--muted); font-size: 12px; }
+  .sym {
+    display: inline-block;
+    background: rgba(0,102,204,0.08);
+    color: var(--primary);
+    border: 1px solid rgba(0,102,204,0.25);
+    border-radius: 9999px;
+    padding: 2px 10px;
+    font-size: 12px;
+    margin: 2px 4px 2px 0;
+  }
+  .muted { color: var(--muted); }
+  footer {
+    margin-top: 32px; color: var(--muted); font-size: 11px;
+    text-align: center; padding-top: 12px;
+    border-top: 1px solid var(--hairline);
+  }
+  @media print {
+    body { padding: 0; background: #fff; }
+    .rec { box-shadow: none; }
+    .print-btn { display: none; }
+  }
+  .print-btn {
+    position: fixed; top: 16px; right: 16px;
+    background: var(--primary); color: #fff;
+    border: none; border-radius: 9999px;
+    padding: 10px 22px; font-size: 14px;
+    cursor: pointer; font-family: inherit;
+  }
+</style></head>
+<body>
+<button class="print-btn" onclick="window.print()">${esc(t('report.print'))}</button>
+<div class="wrap">
+  <h1>${esc(t('report.title'))}</h1>
+  <div class="meta">${esc(t('report.meta', { range: rangeText, n: filtered.length, when: exportedAt }))}</div>
+  ${recordsHtml}
+  <footer>${esc(t('report.footer', { when: exportedAt }))}</footer>
+</div>
+</body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const rangeTag = exportRangeLabel().replace(/-/g,'');
+  a.download = `livestock_report_${dateStr}_${rangeTag}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  const withImg = filtered.filter(r => r.image).length;
+  showToast(t('toast.htmlDone', { n: filtered.length, m: withImg }), 'success');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const imported = Array.isArray(data) ? data : (data.records || []);
+      showConfirm(
+        t('confirm.import', { n: imported.length }),
+        t('confirm.importDesc'),
+        () => {
+          const existingIds = new Set(records.map(r => r.id));
+          let added = 0;
+          imported.forEach(r => {
+            if (!existingIds.has(r.id)) { records.push(r); added++; }
+          });
+          records.sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
+          saveRecords();
+          updateStats();
+          showToast(t('toast.imported', { n: added }), 'success');
+        }
+      );
+    } catch(err) {
+      showToast(t('toast.importError'), 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function updateStats() {
+  const el = document.getElementById('data-stats');
+  if (!el) return;
+  const rooms   = [...new Set(records.map(r=>r.room))].length;
+  const earTags = [...new Set(records.map(r=>r.eartag))].length;
+  const latest  = records[0];
+  el.innerHTML = `
+    ${esc(t('stats.total'))}：<strong>${records.length}${esc(t('stats.records'))}</strong><br>
+    ${esc(t('stats.uniqueTags'))}：<strong>${earTags}${esc(t('stats.heads'))}</strong><br>
+    ${esc(t('stats.rooms'))}：<strong>${rooms}${esc(t('stats.roomsUnit'))}</strong><br>
+    ${esc(t('stats.latest'))}：<strong>${latest ? esc(latest.date + ' ' + latest.time) : esc(t('unset'))}</strong>
+  `;
+}
+
+// ============================================================
+// BARCODE SCANNER
+// ============================================================
+async function openScanner() {
+  scannedCode = null;
+  document.getElementById('scan-result-bar').style.display = 'none';
+  document.getElementById('btn-confirm-scan').style.display = 'none';
+  document.getElementById('scanner-modal').classList.add('open');
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    scanStream = stream;
+    scanTrack = stream.getVideoTracks()[0];
+    const video = document.getElementById('scanner-video');
+    video.srcObject = stream;
+    await video.play();
+
+    // トーチ対応チェック
+    detectTorchSupport();
+
+    // BarcodeDetector API（Chrome/Android WebView対応）
+    if ('BarcodeDetector' in window) {
+      startBarcodeDetector(video);
+    } else {
+      // フォールバック: 手動入力を促す
+      document.querySelector('.scan-hint').textContent = t('scanner.notSupported');
+    }
+  } catch(err) {
+    closeScanner();
+    if (err.name === 'NotAllowedError') {
+      showToast(t('toast.cameraDenied'), 'error');
+    } else {
+      showToast(t('toast.cameraError'), 'error');
+    }
+  }
+}
+
+function startBarcodeDetector(video) {
+  const detector = new BarcodeDetector({
+    formats: [
+      'code_128', 'code_39', 'code_93', 'ean_13', 'ean_8',
+      'upc_a', 'upc_e', 'itf', 'codabar', 'qr_code', 'data_matrix'
+    ]
+  });
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  scanDetecting = true;
+
+  async function detect() {
+    if (!scanDetecting) return;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      try {
+        const barcodes = await detector.detect(canvas);
+        if (barcodes.length > 0) {
+          const code = barcodes[0].rawValue;
+          if (code && code !== scannedCode) {
+            scannedCode = code;
+            showScanResult(code);
+            // 短いバイブレーション（対応端末）
+            if (navigator.vibrate) navigator.vibrate([100]);
+          }
+        }
+      } catch(e) { /* ignore */ }
+    }
+    if (scanDetecting) requestAnimationFrame(detect);
+  }
+
+  video.addEventListener('playing', () => requestAnimationFrame(detect), { once: true });
+  if (video.readyState >= 3) requestAnimationFrame(detect);
+}
+
+function showScanResult(code) {
+  const bar = document.getElementById('scan-result-bar');
+  bar.textContent = t('scanner.scanned') + code;
+  bar.style.display = 'block';
+  document.getElementById('btn-confirm-scan').style.display = 'inline-block';
+  document.querySelector('.scan-line').style.animationPlayState = 'paused';
+  scanDetecting = false;
+}
+
+function openImageModal(recordId) {
+  const r = records.find(x => x.id === recordId);
+  if (!r || !r.image) return;
+  document.getElementById('image-modal-img').src = r.image;
+  document.getElementById('image-modal').classList.add('open');
+}
+
+function closeImageModal() {
+  document.getElementById('image-modal').classList.remove('open');
+  document.getElementById('image-modal-img').src = '';
+}
+
+function captureFrameAsDataURL(video) {
+  if (!video || !video.videoWidth) return null;
+  const maxW = 640;
+  const ratio = Math.min(1, maxW / video.videoWidth);
+  const w = Math.round(video.videoWidth * ratio);
+  const h = Math.round(video.videoHeight * ratio);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+  try {
+    return canvas.toDataURL('image/jpeg', 0.72);
+  } catch (e) {
+    return null;
+  }
+}
+
+function showScanPreviewInForm(dataUrl) {
+  const wrap = document.getElementById('scan-preview');
+  const img  = document.getElementById('scan-preview-img');
+  if (!wrap || !img) return;
+  if (dataUrl) {
+    img.src = dataUrl;
+    wrap.classList.add('show');
+  } else {
+    img.src = '';
+    wrap.classList.remove('show');
+  }
+}
+
+function clearScanImage() {
+  lastScannedImage = null;
+  showScanPreviewInForm(null);
+  showToast(t('toast.imageRemoved'), 'success');
+}
+
+function confirmScan() {
+  if (scannedCode) {
+    const video = document.getElementById('scanner-video');
+    lastScannedImage = captureFrameAsDataURL(video);
+    document.getElementById('f-eartag').value = scannedCode;
+    setDefaultDateTime();
+    showScanPreviewInForm(lastScannedImage);
+    showToast(t('toast.scanned') + scannedCode + (lastScannedImage ? t('toast.scannedImage') : ''), 'success');
+  }
+  closeScanner();
+}
+
+function detectTorchSupport() {
+  const btn = document.getElementById('torch-btn');
+  if (!btn) return;
+  btn.classList.remove('available', 'on');
+  torchOn = false;
+  document.getElementById('torch-label').textContent = 'ライトON';
+  if (!scanTrack || typeof scanTrack.getCapabilities !== 'function') return;
+  try {
+    const caps = scanTrack.getCapabilities();
+    if (caps && caps.torch) btn.classList.add('available');
+  } catch (e) { /* ignore */ }
+}
+
+async function toggleTorch() {
+  if (!scanTrack) return;
+  try {
+    torchOn = !torchOn;
+    await scanTrack.applyConstraints({ advanced: [{ torch: torchOn }] });
+    const btn = document.getElementById('torch-btn');
+    btn.classList.toggle('on', torchOn);
+    document.getElementById('torch-label').textContent = torchOn ? t('scanner.torch.off') : t('scanner.torch.on');
+  } catch (e) {
+    torchOn = false;
+    showToast(t('toast.torchError'), 'error');
+  }
+}
+
+function closeScanner() {
+  scanDetecting = false;
+  // 念のためトーチ消灯
+  if (scanTrack && torchOn) {
+    try { scanTrack.applyConstraints({ advanced: [{ torch: false }] }); } catch(e){}
+  }
+  torchOn = false;
+  scanTrack = null;
+  if (scanStream) {
+    scanStream.getTracks().forEach(t => t.stop());
+    scanStream = null;
+  }
+  const video = document.getElementById('scanner-video');
+  video.srcObject = null;
+  document.getElementById('scanner-modal').classList.remove('open');
+  const torchBtn = document.getElementById('torch-btn');
+  if (torchBtn) {
+    torchBtn.classList.remove('on', 'available');
+    document.getElementById('torch-label').textContent = t('scanner.torch.on');
+  }
+  scannedCode = null;
+}
+
+function manualInput() {
+  const val = prompt(t('manual.prompt'));
+  if (val && val.trim()) {
+    document.getElementById('f-eartag').value = val.trim();
+    setDefaultDateTime();
+    closeScanner();
+    showToast(t('toast.eartagSet'), 'success');
+  }
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'show ' + type;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = type; }, 2800);
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function esc(str) {
+  return String(str||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// Androidバックキー対応
+document.addEventListener('backbutton', () => {
+  if (document.getElementById('scanner-modal').classList.contains('open')) {
+    closeScanner();
+  } else if (document.getElementById('confirm-modal').classList.contains('open')) {
+    closeConfirm();
+  }
+}, false);
+</script>
+</body>
+</html>
