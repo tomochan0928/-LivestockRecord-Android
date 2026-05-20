@@ -16,29 +16,31 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // signingConfigs must be declared BEFORE buildTypes that reference it
+    signingConfigs {
+        release {
+            if (System.getenv("KEYSTORE_BASE64")) {
+                storeFile file("${buildDir}/release.keystore")
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+                keyAlias System.getenv("KEY_ALIAS") ?: ""
+                keyPassword System.getenv("KEY_PASSWORD") ?: ""
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Sign with the keystore (set via environment variables in CI)
-            signingConfig signingConfigs.release
+            // Sign only if a keystore was provided via env vars in CI
+            if (System.getenv("KEYSTORE_BASE64")) {
+                signingConfig signingConfigs.release
+            }
         }
         debug {
             applicationIdSuffix ".debug"
             debuggable true
-        }
-    }
-
-    signingConfigs {
-        release {
-            if (System.getenv("KEYSTORE_BASE64")) {
-                def keystoreFile = file("${buildDir}/release.keystore")
-                storeFile keystoreFile
-                storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
-                keyAlias System.getenv("KEY_ALIAS") ?: ""
-                keyPassword System.getenv("KEY_PASSWORD") ?: ""
-            }
         }
     }
 
