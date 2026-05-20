@@ -1,0 +1,89 @@
+# 家畜診療記録 Android アプリ - APK 自動ビルド
+# -----------------------------------------------------------------------------
+# このファイルはリポジトリ内の次の場所に置いてください:
+#     .github/workflows/build-release.yml
+#
+# ビルドが実行されるタイミング:
+#   1) Actions タブから「Run workflow」を手動実行したとき
+#        -> ビルドした APK は「Artifacts」からダウンロードできます
+#   2) v で始まるタグ（例: v1.0.0）を付けたとき
+#        -> ビルドした APK が「Releases」に自動で公開されます
+# -----------------------------------------------------------------------------
+
+name: Build APK
+
+on:
+  workflow_dispatch:        # Actions タブから手動実行できるようにする
+  push:
+    tags:
+      - 'v*'                # v1.0.0 などのタグで実行
+
+permissions:
+  contents: write           # Releases に APK を公開するために必要
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ソースコードを取得
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # JDK 17 をセットアップ（Android Gradle Plugin 8.2.2 に必要）
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Gradle をセットアップ（キャッシュ + フォールバック用の standalone Gradle）
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      # デバッグ APK をビルド
+      # Gradle wrapper の jar があればそれを使い、無ければ standalone Gradle を使う
+      - name: Build debug APK
+        run: |
+          chmod +x ./gradlew 2>/dev/null || true
+          if [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "Gradle wrapper を使用してビルドします"
+            ./gradlew assembleDebug --stacktrace
+          else
+            echo "gradle-wrapper.jar が見つからないため standalone Gradle を使用します"
+            gradle assembleDebug --stacktrace
+          fi
+
+      # APK にわかりやすい名前を付けて dist フォルダにまとめる
+      - name: Prepare APK
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk \
+             "dist/LivestockRecord-${{ github.ref_name }}-debug.apk"
+          ls -lh dist
+
+      # APK を成果物（Artifact）としてアップロード
+      # 手動実行（workflow_dispatch）の場合はここから APK を取得します
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LivestockRecord-APK
+          path: dist/*.apk
+
+      # タグで実行されたときは Releases に APK を公開する
+      # （Release が既にある場合は添付、無ければ新規作成する）
+      - name: Publish to Releases
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG は既に存在します。APK を添付します。"
+            gh release upload "$TAG" dist/*.apk --clobber
+          else
+            echo "Release $TAG を新規作成します。"
+            gh release create "$TAG" dist/*.apk --title "$TAG" --generate-notes
+          fi
